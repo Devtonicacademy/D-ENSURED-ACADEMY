@@ -1,5 +1,19 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { 
+  auth, 
+  db, 
+  googleProvider,
+  signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword, 
+  signInWithPopup, 
+  firebaseSignOut, 
+  onAuthStateChanged,
+  firebaseUpdateProfile,
+  doc,
+  getDoc,
+  setDoc,
+  serverTimestamp
+} from '../lib/firebase';
 
 const AuthContext = createContext();
 
@@ -33,85 +47,73 @@ export function AuthProvider({ children }) {
     const saved = localStorage.getItem('d_ensured_user');
     return saved ? JSON.parse(saved) : DEFAULT_DEMO_STUDENT;
   });
-  const [session, setSession] = useState(null);
+  const [firebaseUser, setFirebaseUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Sync Supabase Auth Session on mount
+  // Sync Firebase Auth Session on mount and listen to changes
   useEffect(() => {
-    let mounted = true;
+    let isMounted = true;
 
-    async function initSession() {
-      try {
-        const { data: { session: initialSession }, error } = await supabase.auth.getSession();
-        if (error) {
-          console.warn('Supabase getSession error:', error.message);
+    const unsubscribe = onAuthStateChanged(auth, async (currentFbUser) => {
+      if (!isMounted) return;
+
+      setFirebaseUser(currentFbUser);
+
+      if (currentFbUser) {
+        await formatAndSetFirebaseUser(currentFbUser);
+      } else {
+        // If not logged in via Firebase and no saved demo user
+        if (!localStorage.getItem('d_ensured_user')) {
+          setUser(null);
         }
-
-        if (initialSession && mounted) {
-          setSession(initialSession);
-          await formatAndSetSupabaseUser(initialSession.user);
-        }
-      } catch (err) {
-        console.warn('Error fetching Supabase session:', err);
-      } finally {
-        if (mounted) setLoading(false);
       }
-    }
-
-    initSession();
-
-    // Listen for auth state changes (login, logout, token refresh)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
-      setSession(newSession);
-      if (newSession?.user) {
-        await formatAndSetSupabaseUser(newSession.user);
-      } else if (!newSession && !localStorage.getItem('d_ensured_user')) {
-        setUser(null);
-      }
+      setLoading(false);
     });
 
     return () => {
-      mounted = false;
-      subscription?.unsubscribe();
+      isMounted = false;
+      unsubscribe();
     };
   }, []);
 
-  // Format Supabase user with Role-Based Access fields
-  const formatAndSetSupabaseUser = async (sbUser) => {
-    const meta = sbUser.user_metadata || {};
-    
-    // Check if role is admin based on metadata or specific admin emails
-    let resolvedRole = meta.role || 'student';
-    if (sbUser.email?.toLowerCase().includes('admin') || sbUser.email === 'admin@densuredconsult.com') {
+  // Format Firebase user with Role-Based Access fields from Firestore
+  const formatAndSetFirebaseUser = async (fbUser) => {
+    let resolvedRole = 'student';
+    let profileData = {};
+
+    // 1. Check if email matches executive admin
+    if (
+      fbUser.email?.toLowerCase().includes('admin') || 
+      fbUser.email === 'admin@densuredconsult.com'
+    ) {
       resolvedRole = 'admin';
     }
 
-    // Try fetching profile record if table exists
+    // 2. Fetch role and profile details from Firestore
     try {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', sbUser.id)
-        .single();
-
-      if (profile?.role) {
-        resolvedRole = profile.role;
+      const profileRef = doc(db, 'profiles', fbUser.uid);
+      const profileSnap = await getDoc(profileRef);
+      if (profileSnap.exists()) {
+        profileData = profileSnap.data();
+        if (profileData.role) {
+          resolvedRole = profileData.role;
+        }
       }
     } catch (e) {
-      // Table may not be provisioned yet, use metadata
+      console.warn('Firestore profile lookup notice:', e.message);
     }
 
     const formattedUser = {
-      id: sbUser.id,
-      email: sbUser.email,
+      id: fbUser.uid,
+      email: fbUser.email,
       role: resolvedRole,
-      name: meta.name || meta.full_name || sbUser.email?.split('@')[0]?.replace('.', ' ').toUpperCase(),
-      phone: meta.phone || '08147896930',
-      targetInstitution: meta.targetInstitution || 'University of Lagos (UNILAG)',
-      targetCourse: meta.targetCourse || 'Computer Science',
-      avatar: meta.avatar_url || (resolvedRole === 'admin' ? '/assets/ceo_akinjo_rotimi.jpg' : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80'),
-      registeredDate: sbUser.created_at?.split('T')[0] || new Date().toISOString().split('T')[0],
-      isSupabaseAuth: true
+      name: profileData.name || fbUser.displayName || fbUser.email?.split('@')[0]?.replace('.', ' ').toUpperCase(),
+      phone: profileData.phone || '08147896930',
+      targetInstitution: profileData.targetInstitution || 'University of Lagos (UNILAG)',
+      targetCourse: profileData.targetCourse || 'Computer Science',
+      avatar: profileData.avatar || fbUser.photoURL || (resolvedRole === 'admin' ? '/assets/ceo_akinjo_rotimi.jpg' : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80'),
+      registeredDate: profileData.registeredDate || new Date().toISOString().split('T')[0],
+      isFirebaseAuth: true
     };
 
     setUser(formattedUser);
@@ -128,7 +130,7 @@ export function AuthProvider({ children }) {
     }
   }, [user]);
 
-  // LOGIN (Supabase with Demo fallback)
+  // LOGIN (Firebase with Demo fallback)
   const login = async (email, password, role = 'student') => {
     // 1. Direct Demo bypass for testing admin & demo credentials
     if (email === 'admin@densuredconsult.com' || (email.includes('admin') && password === 'admin123')) {
@@ -137,25 +139,22 @@ export function AuthProvider({ children }) {
     }
 
     try {
-      // 2. Attempt Supabase Auth login
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
-
-      if (!error && data?.user) {
-        const formatted = await formatAndSetSupabaseUser(data.user);
+      // 2. Attempt Firebase Auth login
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      if (userCredential?.user) {
+        const formatted = await formatAndSetFirebaseUser(userCredential.user);
         return { success: true, user: formatted };
       }
+    } catch (err) {
+      console.warn('Firebase sign in notice:', err.code, err.message);
 
-      // If Supabase returns invalid login credentials or user not confirmed,
-      // fallback gracefully for demo accounts
+      // If user is testing demo accounts, fall back gracefully
       if (email.includes('admin') || role === 'admin') {
         setUser(DEFAULT_ADMIN);
         return { success: true, user: DEFAULT_ADMIN };
       }
 
-      // Local demo student login
+      // If error is actual invalid password / wrong user, try local fallback if desired
       const studentUser = {
         ...DEFAULT_DEMO_STUDENT,
         email,
@@ -164,66 +163,57 @@ export function AuthProvider({ children }) {
       };
       setUser(studentUser);
       return { success: true, user: studentUser };
-
-    } catch (err) {
-      console.warn('Supabase sign in failed, using demo fallback:', err);
-      const fallbackUser = role === 'admin' ? DEFAULT_ADMIN : {
-        ...DEFAULT_DEMO_STUDENT,
-        email,
-        name: email.split('@')[0].replace('.', ' ').toUpperCase(),
-        role
-      };
-      setUser(fallbackUser);
-      return { success: true, user: fallbackUser };
     }
   };
 
-  // REGISTER (Supabase with Profile creation)
+  // REGISTER (Firebase with Firestore Profile creation)
   const register = async (userData) => {
     const desiredRole = userData.role || 'student';
 
     try {
-      // 1. Attempt Supabase Sign Up
-      const { data, error } = await supabase.auth.signUp({
-        email: userData.email,
-        password: userData.password || 'Student@123456',
-        options: {
-          data: {
-            name: userData.name,
-            phone: userData.phone,
-            role: desiredRole,
-            targetInstitution: userData.targetInstitution,
-            targetCourse: userData.targetCourse,
-            examTrack: userData.examTrack,
-            guardianName: userData.guardianName,
-            guardianPhone: userData.guardianPhone
-          }
-        }
-      });
+      // 1. Attempt Firebase Auth User Creation
+      const userCredential = await createUserWithEmailAndPassword(
+        auth, 
+        userData.email, 
+        userData.password || 'Student@123456'
+      );
 
-      if (!error && data?.user) {
-        // Attempt to create profile row if profiles table exists
+      if (userCredential?.user) {
+        // Update user display name
         try {
-          await supabase.from('profiles').upsert({
-            id: data.user.id,
-            email: userData.email,
-            name: userData.name,
-            phone: userData.phone,
-            role: desiredRole,
-            target_institution: userData.targetInstitution,
-            target_course: userData.targetCourse,
-            created_at: new Date().toISOString()
+          await firebaseUpdateProfile(userCredential.user, {
+            displayName: userData.name
           });
         } catch (e) {
-          // Non-blocking if table is not yet migrated
+          console.warn('Display name update notice:', e);
         }
 
-        const formatted = await formatAndSetSupabaseUser(data.user);
+        // Save complete profile row to Cloud Firestore
+        try {
+          await setDoc(doc(db, 'profiles', userCredential.user.uid), {
+            id: userCredential.user.uid,
+            email: userData.email,
+            name: userData.name,
+            phone: userData.phone || '',
+            role: desiredRole,
+            targetInstitution: userData.targetInstitution || '',
+            targetCourse: userData.targetCourse || '',
+            examTrack: userData.examTrack || '',
+            guardianName: userData.guardianName || '',
+            guardianPhone: userData.guardianPhone || '',
+            registeredDate: new Date().toISOString().split('T')[0],
+            createdAt: serverTimestamp()
+          });
+        } catch (e) {
+          console.warn('Firestore profile write notice:', e);
+        }
+
+        const formatted = await formatAndSetFirebaseUser(userCredential.user);
         return { success: true, user: formatted };
       }
 
     } catch (err) {
-      console.warn('Supabase registration fallback:', err);
+      console.warn('Firebase registration notice:', err.code, err.message);
     }
 
     // 2. Client-side state fallback
@@ -241,19 +231,38 @@ export function AuthProvider({ children }) {
     return { success: true, user: newUser };
   };
 
-  // GOOGLE OAUTH SIGN-IN
+  // GOOGLE POPUP SIGN-IN
   const loginWithGoogle = async () => {
     try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: window.location.origin
+      const result = await signInWithPopup(auth, googleProvider);
+      if (result?.user) {
+        // Persist profile to Firestore if not already present
+        try {
+          const profileRef = doc(db, 'profiles', result.user.uid);
+          const profileSnap = await getDoc(profileRef);
+          if (!profileSnap.exists()) {
+            await setDoc(profileRef, {
+              id: result.user.uid,
+              email: result.user.email,
+              name: result.user.displayName || 'Google Scholar',
+              role: 'student',
+              phone: '08147896930',
+              targetInstitution: 'University of Lagos (UNILAG)',
+              targetCourse: 'Computer Science',
+              avatar: result.user.photoURL,
+              registeredDate: new Date().toISOString().split('T')[0],
+              createdAt: serverTimestamp()
+            });
+          }
+        } catch (e) {
+          console.warn('Google user profile write notice:', e);
         }
-      });
-      if (error) throw error;
-      return { success: true, data };
+
+        const formatted = await formatAndSetFirebaseUser(result.user);
+        return { success: true, user: formatted };
+      }
     } catch (err) {
-      console.warn('Google OAuth error, using demo:', err);
+      console.warn('Firebase Google Auth notice, using demo fallback:', err);
       const googleDemoUser = {
         id: 'std_google_' + Date.now(),
         name: 'Google Candidate',
@@ -273,11 +282,12 @@ export function AuthProvider({ children }) {
   // LOGOUT
   const logout = async () => {
     try {
-      await supabase.auth.signOut();
+      await firebaseSignOut(auth);
     } catch (e) {
-      console.warn('Supabase signOut error:', e);
+      console.warn('Firebase signOut error:', e);
     }
     setUser(null);
+    setFirebaseUser(null);
     localStorage.removeItem('d_ensured_user');
   };
 
@@ -291,9 +301,10 @@ export function AuthProvider({ children }) {
 
     if (user?.id) {
       try {
-        await supabase.from('profiles').update(updatedFields).eq('id', user.id);
+        const profileRef = doc(db, 'profiles', user.id);
+        await setDoc(profileRef, updatedFields, { merge: true });
       } catch (e) {
-        // Non-blocking
+        console.warn('Firestore profile update notice:', e);
       }
     }
   };
@@ -319,7 +330,7 @@ export function AuthProvider({ children }) {
   return (
     <AuthContext.Provider value={{ 
       user, 
-      session,
+      firebaseUser,
       loading,
       role,
       isAdmin,
@@ -332,7 +343,8 @@ export function AuthProvider({ children }) {
       loginWithGoogle,
       logout, 
       updateProfile,
-      supabase 
+      auth,
+      db
     }}>
       {children}
     </AuthContext.Provider>

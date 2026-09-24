@@ -1,0 +1,44 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // User profiles
+    match /users/{userId} {
+      allow read: if true;
+      allow write: if isAuthenticated() && request.auth.uid == userId;
+    }
+
+    match /profiles/{userId} {
+      allow read: if true;
+      allow write: if isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Service requests and course enrollments
+    match /service_requests/{requestId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // Lead reservations
+    match /leads/{leadId} {
+      allow create: if true;
+      allow read, write: if isAuthenticated();
+    }
+
+    // Student verified scores & testimonials
+    match /testimonials/{id} {
+      allow read: if true;
+      allow create: if true;
+      allow update, delete: if isAuthenticated();
+    }
+
+    // Global collection rules
+    match /{document=**} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+  }
+}

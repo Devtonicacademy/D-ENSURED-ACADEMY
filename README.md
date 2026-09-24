@@ -6,7 +6,7 @@ A modern, production-ready educational consultancy, examination preparation, and
 ## 🌟 Overview & Key Features
 
 - **Examination Mastery Programs**: Full prep modules and CBT simulators for JAMB UTME, UNILAG Post-UTME (Target 25/30), WAEC, NECO, and GCE.
-- **Supabase Authentication & RBAC**: Real-time role-based access control (Student, Admin, Tutor) with Google OAuth support.
+- **Firebase Authentication & Cloud Firestore RBAC**: Real-time role-based access control (Student, Admin, Tutor) with Google OAuth and Cloud Firestore profiles.
 - **Dynamic Theme Engine**: Automatically adapts to user's browser/system color scheme (`prefers-color-scheme`) with full manual toggle (System, Dark, Light).
 - **Interactive Multi-Step Registration**: Structured wizard with personal details, guardian contact, exam tracks, and interactive 4-subject combination selector.
 - **Turn-by-Turn Transit Guides & Interactive Map**: Location directions to Doyin Plaza, Igboelerin Busstop, Okomaiko, Lagos with route estimators.
@@ -21,8 +21,8 @@ A modern, production-ready educational consultancy, examination preparation, and
 - **Framework**: React 18 (Vite)
 - **Styling**: Tailwind CSS & Glassmorphism
 - **Animations**: Framer Motion
-- **Icons**: Lucide React
-- **Backend / Auth**: Supabase (`@supabase/supabase-js`)
+- **Icons**: Font Awesome (`@fortawesome/react-fontawesome`)
+- **Backend / Database / Auth**: Google Firebase (`firebase@^12`, Cloud Firestore, Firebase Auth)
 
 ---
 

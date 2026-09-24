@@ -60,7 +60,7 @@ export default function AuthModal() {
 
   if (!isAuthModalOpen) return null;
 
-  // Social Login handler with Supabase OAuth
+  // Social Login handler with Firebase Google OAuth
   const handleGoogleAuth = async () => {
     setGoogleLoading(true);
     setErrorMsg('');
