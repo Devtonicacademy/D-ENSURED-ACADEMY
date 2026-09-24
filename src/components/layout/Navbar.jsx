@@ -228,71 +228,76 @@ export default function Navbar() {
                     </div>
                   </div>
 
-                  <div className="py-1">
-                    {/* Primary Role Destination */}
-                    {user.role === 'admin' && (
-                      <button
-                        onClick={() => {
-                          setActiveTab('ADMIN');
-                          setUserDropdownOpen(false);
-                        }}
-                        className="w-full text-left px-3.5 py-2 text-xs font-semibold text-amber-300 hover:bg-slate-800 flex items-center gap-2 transition"
-                      >
-                        <LayoutDashboard size={14} className="text-amber-400" />
-                        Executive Control Panel
-                      </button>
-                    )}
+                  {/* Only show Portal Navigation & Role Switcher if NOT signed in as a student */}
+                  {user.role !== 'student' && (
+                    <>
+                      <div className="py-1">
+                        {/* Primary Role Destination */}
+                        {user.role === 'admin' && (
+                          <button
+                            onClick={() => {
+                              setActiveTab('ADMIN');
+                              setUserDropdownOpen(false);
+                            }}
+                            className="w-full text-left px-3.5 py-2 text-xs font-semibold text-amber-300 hover:bg-slate-800 flex items-center gap-2 transition"
+                          >
+                            <LayoutDashboard size={14} className="text-amber-400" />
+                            Executive Control Panel
+                          </button>
+                        )}
 
-                    <button
-                      onClick={() => {
-                        setActiveTab('DASHBOARD');
-                        setUserDropdownOpen(false);
-                      }}
-                      className="w-full text-left px-3.5 py-2 text-xs font-semibold text-slate-200 hover:bg-slate-800 flex items-center gap-2 transition"
-                    >
-                      <LayoutDashboard size={14} className="text-amber-400" />
-                      {user.role === 'admin' ? 'Candidate Dashboard View' : user.role === 'tutor' ? 'Tutor Hub & Class Roster' : 'Student Learning Dashboard'}
-                    </button>
-                  </div>
-
-                  {/* Quick Role Switcher for live testing */}
-                  <div className="px-3.5 py-2 border-t border-slate-800 bg-slate-950">
-                    <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block mb-1.5">
-                      Switch Role (RBAC Demo):
-                    </span>
-                    <div className="grid grid-cols-3 gap-1">
-                      {[
-                        { id: 'student', label: 'Student' },
-                        { id: 'tutor', label: 'Tutor' },
-                        { id: 'admin', label: 'Admin' }
-                      ].map((r) => (
                         <button
-                          key={r.id}
                           onClick={() => {
-                            switchRole(r.id);
-                            if (r.id === 'admin') setActiveTab('ADMIN');
-                            else setActiveTab('DASHBOARD');
+                            setActiveTab('DASHBOARD');
                             setUserDropdownOpen(false);
                           }}
-                          className={`py-1 text-[10px] font-bold rounded-lg transition text-center ${
-                            user.role === r.id
-                              ? 'bg-amber-400 text-slate-950 font-black shadow'
-                              : 'bg-slate-800 text-slate-400 hover:text-white'
-                          }`}
+                          className="w-full text-left px-3.5 py-2 text-xs font-semibold text-slate-200 hover:bg-slate-800 flex items-center gap-2 transition"
                         >
-                          {r.label}
+                          <LayoutDashboard size={14} className="text-amber-400" />
+                          {user.role === 'admin' ? 'Candidate Dashboard View' : 'Tutor Hub & Class Roster'}
                         </button>
-                      ))}
-                    </div>
-                  </div>
+                      </div>
 
-                  <div className="pt-1 border-t border-slate-800/80">
+                      {/* Quick Role Switcher for live testing */}
+                      <div className="px-3.5 py-2 border-t border-slate-800 bg-slate-950">
+                        <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block mb-1.5">
+                          Switch Role (RBAC Demo):
+                        </span>
+                        <div className="grid grid-cols-3 gap-1">
+                          {[
+                            { id: 'student', label: 'Student' },
+                            { id: 'tutor', label: 'Tutor' },
+                            { id: 'admin', label: 'Admin' }
+                          ].map((r) => (
+                            <button
+                              key={r.id}
+                              onClick={() => {
+                                switchRole(r.id);
+                                if (r.id === 'admin') setActiveTab('ADMIN');
+                                else setActiveTab('DASHBOARD');
+                                setUserDropdownOpen(false);
+                              }}
+                              className={`py-1 text-[10px] font-bold rounded-lg transition text-center ${
+                                user.role === r.id
+                                  ? 'bg-amber-400 text-slate-950 font-black shadow'
+                                  : 'bg-slate-800 text-slate-400 hover:text-white'
+                              }`}
+                            >
+                              {r.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  <div className={`pt-1 ${user.role !== 'student' ? 'border-t border-slate-800' : ''}`}>
                     <button
                       onClick={() => {
                         logout();
                         setUserDropdownOpen(false);
                       }}
-                      className="w-full text-left px-3.5 py-2 text-xs font-semibold text-rose-400 hover:bg-rose-500/10 flex items-center gap-2 transition"
+                      className="w-full text-left px-3.5 py-2.5 text-xs font-semibold text-rose-400 hover:bg-rose-500/10 flex items-center gap-2 transition rounded-xl"
                     >
                       <LogOut size={14} /> Log Out
                     </button>
@@ -371,69 +376,74 @@ export default function Navbar() {
                     </div>
                   </div>
 
-                  <div className="py-1">
-                    {user.role === 'admin' && (
-                      <button
-                        onClick={() => {
-                          setActiveTab('ADMIN');
-                          setUserDropdownOpen(false);
-                        }}
-                        className="w-full text-left px-3.5 py-2 text-xs font-semibold text-amber-300 hover:bg-slate-800 flex items-center gap-2"
-                      >
-                        <LayoutDashboard size={14} className="text-amber-400" />
-                        Executive Control Panel
-                      </button>
-                    )}
+                  {/* Only show Portal Navigation & Role Switcher if NOT signed in as a student */}
+                  {user.role !== 'student' && (
+                    <>
+                      <div className="py-1">
+                        {user.role === 'admin' && (
+                          <button
+                            onClick={() => {
+                              setActiveTab('ADMIN');
+                              setUserDropdownOpen(false);
+                            }}
+                            className="w-full text-left px-3.5 py-2 text-xs font-semibold text-amber-300 hover:bg-slate-800 flex items-center gap-2"
+                          >
+                            <LayoutDashboard size={14} className="text-amber-400" />
+                            Executive Control Panel
+                          </button>
+                        )}
 
-                    <button
-                      onClick={() => {
-                        setActiveTab('DASHBOARD');
-                        setUserDropdownOpen(false);
-                      }}
-                      className="w-full text-left px-3.5 py-2 text-xs font-semibold text-slate-200 hover:bg-slate-800 flex items-center gap-2"
-                    >
-                      <LayoutDashboard size={14} className="text-amber-400" />
-                      {user.role === 'admin' ? 'Candidate Dashboard View' : user.role === 'tutor' ? 'Tutor Hub & Class Roster' : 'Student Learning Dashboard'}
-                    </button>
-                  </div>
-
-                  <div className="px-3.5 py-2 border-t border-slate-800 bg-slate-950">
-                    <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block mb-1.5">
-                      Switch Role (RBAC Demo):
-                    </span>
-                    <div className="grid grid-cols-3 gap-1">
-                      {[
-                        { id: 'student', label: 'Student' },
-                        { id: 'tutor', label: 'Tutor' },
-                        { id: 'admin', label: 'Admin' }
-                      ].map((r) => (
                         <button
-                          key={r.id}
                           onClick={() => {
-                            switchRole(r.id);
-                            if (r.id === 'admin') setActiveTab('ADMIN');
-                            else setActiveTab('DASHBOARD');
+                            setActiveTab('DASHBOARD');
                             setUserDropdownOpen(false);
                           }}
-                          className={`py-1 text-[10px] font-bold rounded-lg transition text-center ${
-                            user.role === r.id
-                              ? 'bg-amber-400 text-slate-950 font-black shadow'
-                              : 'bg-slate-800 text-slate-400 hover:text-white'
-                          }`}
+                          className="w-full text-left px-3.5 py-2 text-xs font-semibold text-slate-200 hover:bg-slate-800 flex items-center gap-2"
                         >
-                          {r.label}
+                          <LayoutDashboard size={14} className="text-amber-400" />
+                          {user.role === 'admin' ? 'Candidate Dashboard View' : 'Tutor Hub & Class Roster'}
                         </button>
-                      ))}
-                    </div>
-                  </div>
+                      </div>
 
-                  <div className="pt-1 border-t border-slate-800/80">
+                      <div className="px-3.5 py-2 border-t border-slate-800 bg-slate-950">
+                        <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block mb-1.5">
+                          Switch Role (RBAC Demo):
+                        </span>
+                        <div className="grid grid-cols-3 gap-1">
+                          {[
+                            { id: 'student', label: 'Student' },
+                            { id: 'tutor', label: 'Tutor' },
+                            { id: 'admin', label: 'Admin' }
+                          ].map((r) => (
+                            <button
+                              key={r.id}
+                              onClick={() => {
+                                switchRole(r.id);
+                                if (r.id === 'admin') setActiveTab('ADMIN');
+                                else setActiveTab('DASHBOARD');
+                                setUserDropdownOpen(false);
+                              }}
+                              className={`py-1 text-[10px] font-bold rounded-lg transition text-center ${
+                                user.role === r.id
+                                  ? 'bg-amber-400 text-slate-950 font-black shadow'
+                                  : 'bg-slate-800 text-slate-400 hover:text-white'
+                              }`}
+                            >
+                              {r.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  <div className={`pt-1 ${user.role !== 'student' ? 'border-t border-slate-800/80' : ''}`}>
                     <button
                       onClick={() => {
                         logout();
                         setUserDropdownOpen(false);
                       }}
-                      className="w-full text-left px-3.5 py-2 text-xs font-semibold text-rose-400 hover:bg-rose-500/10 flex items-center gap-2"
+                      className="w-full text-left px-3.5 py-2.5 text-xs font-semibold text-rose-400 hover:bg-rose-500/10 flex items-center gap-2 rounded-xl transition"
                     >
                       <LogOut size={14} /> Log Out
                     </button>
@@ -476,21 +486,23 @@ export default function Navbar() {
                 </div>
               </div>
               <div className="flex gap-2 pt-1 border-t border-slate-800">
-                <button
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    setActiveTab(user.role === 'admin' ? 'ADMIN' : 'DASHBOARD');
-                  }}
-                  className="flex-1 py-1.5 text-[11px] font-bold rounded-lg bg-amber-400 text-slate-950 text-center"
-                >
-                  Go to Portal
-                </button>
+                {user.role !== 'student' && (
+                  <button
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      setActiveTab(user.role === 'admin' ? 'ADMIN' : 'DASHBOARD');
+                    }}
+                    className="flex-1 py-1.5 text-[11px] font-bold rounded-lg bg-amber-400 text-slate-950 text-center"
+                  >
+                    Go to Portal
+                  </button>
+                )}
                 <button
                   onClick={() => {
                     setMobileMenuOpen(false);
                     logout();
                   }}
-                  className="px-3 py-1.5 text-[11px] font-bold rounded-lg bg-rose-500/20 text-rose-400 hover:bg-rose-500/30 border border-rose-500/30"
+                  className={`${user.role === 'student' ? 'w-full' : 'px-3'} py-1.5 text-[11px] font-bold rounded-lg bg-rose-500/20 text-rose-400 hover:bg-rose-500/30 border border-rose-500/30 text-center`}
                 >
                   Log Out
                 </button>
