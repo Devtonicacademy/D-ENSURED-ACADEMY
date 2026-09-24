@@ -122,7 +122,6 @@ export default function Navbar() {
         <nav className="hidden lg:flex items-center gap-0.5 xl:gap-1 shrink-0">
           {navItems.map((item) => {
             const isActive = activeTab === item.id;
-            const isResources = item.id === 'BLOG';
             return (
               <button
                 key={item.id}
@@ -130,9 +129,7 @@ export default function Navbar() {
                 className={`px-1.5 xl:px-2.5 py-1.5 text-[11px] xl:text-xs font-bold tracking-normal xl:tracking-wider rounded-lg transition-all duration-200 whitespace-nowrap ${
                   isActive 
                     ? 'text-amber-400 bg-amber-400/10 border border-amber-400/30 shadow-inner' 
-                    : isResources
-                    ? 'text-amber-300 hover:text-amber-200 hover:bg-slate-800/80 font-black'
-                    : 'text-slate-200 hover:text-white hover:bg-slate-800/60'
+                    : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
                 }`}
               >
                 {item.label}
