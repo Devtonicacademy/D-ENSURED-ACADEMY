@@ -23,6 +23,7 @@ import ResultsPage from './components/pages/ResultsPage';
 import ContactPage from './components/pages/ContactPage';
 import StudentDashboard from './components/pages/StudentDashboard';
 import AdminDashboard from './components/pages/AdminDashboard';
+import ProtectedRoute from './components/common/ProtectedRoute';
 
 function MainContent() {
   const { activeTab } = useApp();
@@ -48,9 +49,17 @@ function MainContent() {
       case 'CONTACT':
         return <ContactPage />;
       case 'DASHBOARD':
-        return <StudentDashboard />;
+        return (
+          <ProtectedRoute allowedRoles={['student', 'tutor', 'admin']} title="Candidate Portal" description="Please sign in to access your course syllabus, test history, and academic analytics.">
+            <StudentDashboard />
+          </ProtectedRoute>
+        );
       case 'ADMIN':
-        return <AdminDashboard />;
+        return (
+          <ProtectedRoute allowedRoles={['admin']} title="Executive Admin Portal" description="Access to candidate databases, campaign settings, and verification approvals is restricted to authorized administrators.">
+            <AdminDashboard />
+          </ProtectedRoute>
+        );
       default:
         return <HomePage />;
     }

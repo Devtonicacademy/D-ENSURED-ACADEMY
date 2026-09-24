@@ -177,7 +177,7 @@ export default function AuthModal() {
         targetCourse: formData.targetCourse,
         examTrack: formData.examTrack,
         selectedSubjects: formData.selectedSubjectIds,
-        role: 'student'
+        role: role || 'student'
       });
 
       if (res.success) {
@@ -284,19 +284,26 @@ export default function AuthModal() {
           {mode === 'login' && (
             <form onSubmit={handleLoginSubmit} className="space-y-4">
               {/* Role selector */}
-              <div className="flex gap-2 p-1 bg-slate-900/90 rounded-xl border border-slate-800">
-                {['student', 'admin'].map((r) => (
+              <div className="flex gap-1.5 p-1 bg-slate-900/90 rounded-xl border border-slate-800">
+                {[
+                  { id: 'student', label: 'Student', email: 'chinedu.student@example.com', pass: 'student123' },
+                  { id: 'tutor', label: 'Tutor', email: 'tutor@densuredconsult.com', pass: 'tutor123' },
+                  { id: 'admin', label: 'Staff / Admin', email: 'admin@densuredconsult.com', pass: 'admin123' }
+                ].map((r) => (
                   <button
-                    key={r}
+                    key={r.id}
                     type="button"
-                    onClick={() => setRole(r)}
+                    onClick={() => {
+                      setRole(r.id);
+                      setFormData(prev => ({ ...prev, email: r.email, password: r.pass }));
+                    }}
                     className={`flex-1 py-1.5 text-xs font-bold rounded-lg capitalize transition ${
-                      role === r 
+                      role === r.id 
                         ? 'bg-amber-400 text-slate-950 shadow' 
                         : 'text-slate-400 hover:text-white'
                     }`}
                   >
-                    {r === 'student' ? 'Student Candidate' : 'Staff / Admin'}
+                    {r.label}
                   </button>
                 ))}
               </div>
@@ -335,7 +342,7 @@ export default function AuthModal() {
                 type="submit"
                 className="w-full py-3.5 text-xs font-bold text-slate-950 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 rounded-xl shadow-lg transition"
               >
-                Sign In to {role === 'admin' ? 'Admin Portal' : 'Student Portal'}
+                Sign In to {role === 'admin' ? 'Executive Admin Portal' : role === 'tutor' ? 'Tutor Portal' : 'Student Portal'}
               </button>
 
               <div className="text-center pt-3 border-t border-slate-800">

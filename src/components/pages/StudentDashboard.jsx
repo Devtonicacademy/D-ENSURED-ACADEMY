@@ -23,7 +23,18 @@ export default function StudentDashboard() {
   const { setActiveTab, enrolledCourses, cbtAttempts, serviceRequests, openServiceModal, notifications } = useApp();
   const { user, updateProfile } = useAuth();
 
-  const [activeSubTab, setActiveSubTab] = useState('COURSES'); // 'COURSES' | 'CBT_HISTORY' | 'SERVICES_TRACK' | 'PROFILE'
+  const isTutor = user?.role === 'tutor';
+  const isAdmin = user?.role === 'admin';
+
+  const subtabs = [
+    ...(isTutor ? [{ id: 'TUTOR_STUDENTS', label: 'Tutor Class Roster & Grading' }] : []),
+    { id: 'COURSES', label: isTutor ? 'Assigned Prep Classes' : 'My Enrolled Courses' },
+    { id: 'CBT_HISTORY', label: isTutor ? 'CBT Mock Proctoring' : 'CBT Test History' },
+    { id: 'SERVICES_TRACK', label: 'Service Applications' },
+    { id: 'PROFILE', label: 'Profile & Credentials' }
+  ];
+
+  const [activeSubTab, setActiveSubTab] = useState(isTutor ? 'TUTOR_STUDENTS' : 'COURSES');
   const [editingProfile, setEditingProfile] = useState(false);
   const [profileData, setProfileData] = useState({
     name: user ? user.name : '',
@@ -44,6 +55,22 @@ export default function StudentDashboard() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 animate-fadeIn">
       
+      {/* Admin Mode Quick Access Alert */}
+      {isAdmin && (
+        <div className="p-4 bg-amber-400/10 border border-amber-400/30 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-amber-300">
+          <div className="flex items-center gap-2">
+            <span className="text-base">👑</span>
+            <span><strong>Administrator Preview Mode:</strong> You are viewing the candidate learning environment. Switch to Executive Admin Panel anytime.</span>
+          </div>
+          <button
+            onClick={() => setActiveTab('ADMIN')}
+            className="px-4 py-1.5 font-bold text-slate-950 bg-amber-400 hover:bg-amber-300 rounded-xl shadow text-xs whitespace-nowrap transition"
+          >
+            Open Executive Control Panel
+          </button>
+        </div>
+      )}
+
       {/* Welcome Banner */}
       <div className="glass-panel p-6 sm:p-8 rounded-3xl border border-amber-400/30 gold-glow flex flex-col md:flex-row items-center justify-between gap-6">
         <div className="flex items-center gap-4 text-center md:text-left">
@@ -53,14 +80,24 @@ export default function StudentDashboard() {
             className="w-16 h-16 rounded-full border-2 border-amber-400 object-cover shadow-lg"
           />
           <div>
-            <div className="inline-flex items-center gap-1.5 bg-amber-400/20 text-amber-300 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase mb-1">
-              <ShieldCheck size={12} /> Student Learning Portal
+            <div className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase mb-1 ${
+              isAdmin
+                ? 'bg-amber-400/20 text-amber-300 border border-amber-400/30'
+                : isTutor
+                ? 'bg-emerald-400/20 text-emerald-300 border border-emerald-400/30'
+                : 'bg-blue-400/20 text-blue-300 border border-blue-400/30'
+            }`}>
+              <ShieldCheck size={12} /> {isAdmin ? 'Administrator Access' : isTutor ? 'Tutor & Faculty Hub' : 'Student Learning Portal'}
             </div>
             <h1 className="font-heading font-extrabold text-2xl sm:text-3xl text-white">
-              Welcome Back, {user ? user.name.split(' ')[0] : 'Student'}!
+              Welcome Back, {user ? user.name.split(' ')[0] : 'Scholar'}!
             </h1>
             <p className="text-xs text-slate-300 mt-0.5">
-              Target: <strong className="text-amber-400 font-bold">{user ? user.targetCourse : 'Course'}</strong> at <strong className="text-amber-400 font-bold">{user ? user.targetInstitution : 'Varsity'}</strong> (Goal UTME: {user ? user.targetJambScore : 320})
+              {isTutor ? (
+                <>Assigned Specialty: <strong className="text-emerald-400 font-bold">Physics & Mathematics Coaching</strong> • 68 Students in Cohort</>
+              ) : (
+                <>Target: <strong className="text-amber-400 font-bold">{user ? user.targetCourse : 'Course'}</strong> at <strong className="text-amber-400 font-bold">{user ? user.targetInstitution : 'Varsity'}</strong> (Goal UTME: {user ? user.targetJambScore : 320})</>
+              )}
             </p>
           </div>
         </div>
@@ -106,12 +143,7 @@ export default function StudentDashboard() {
 
       {/* Subtab Switcher Bar */}
       <div className="flex flex-wrap gap-2 border-b border-slate-800 pb-3">
-        {[
-          { id: 'COURSES', label: 'My Enrolled Courses' },
-          { id: 'CBT_HISTORY', label: 'CBT Test History' },
-          { id: 'SERVICES_TRACK', label: 'Service Applications Tracker' },
-          { id: 'PROFILE', label: 'Target Profile & Settings' }
-        ].map((tab) => (
+        {subtabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveSubTab(tab.id)}
@@ -125,6 +157,68 @@ export default function StudentDashboard() {
           </button>
         ))}
       </div>
+
+      {/* SUBTAB: TUTOR CLASS ROSTER & GRADING (Tutor Role only) */}
+      {activeSubTab === 'TUTOR_STUDENTS' && isTutor && (
+        <div className="space-y-6 animate-fadeIn">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h3 className="font-heading font-bold text-lg text-white">Assigned Student Cohort & Mock Grading</h3>
+              <p className="text-xs text-slate-400">Review student performance, evaluate mock submissions, and input academic feedback.</p>
+            </div>
+            <span className="px-3 py-1 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 rounded-full font-mono text-xs font-bold self-start">
+              68 Candidates Assigned
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="glass-card p-4 rounded-2xl border border-slate-800">
+              <span className="text-[10px] font-mono text-slate-400 uppercase">Class Average Mock Score</span>
+              <p className="font-heading font-extrabold text-2xl text-emerald-400 mt-1">278.4 / 400</p>
+              <span className="text-[10px] text-emerald-400 font-mono">+18 pts this month</span>
+            </div>
+            <div className="glass-card p-4 rounded-2xl border border-slate-800">
+              <span className="text-[10px] font-mono text-slate-400 uppercase">Pending Review Submissions</span>
+              <p className="font-heading font-extrabold text-2xl text-amber-400 mt-1">12 Scripts</p>
+              <span className="text-[10px] text-amber-300 font-mono">Use of English & Physics</span>
+            </div>
+            <div className="glass-card p-4 rounded-2xl border border-slate-800">
+              <span className="text-[10px] font-mono text-slate-400 uppercase">Next Live Drill Class</span>
+              <p className="font-heading font-extrabold text-xl text-white mt-1">Today, 3:00 PM</p>
+              <span className="text-[10px] text-blue-400 font-mono">Physics Optics & Waves Drill</span>
+            </div>
+          </div>
+
+          <div className="glass-panel rounded-2xl border border-slate-800 overflow-hidden shadow-xl">
+            <div className="p-4 border-b border-slate-800 font-heading font-bold text-sm text-white">
+              Recent Candidate Mock Examinations
+            </div>
+            <div className="divide-y divide-slate-800/80 text-xs">
+              {[
+                { name: 'Olamide Adebayo', exam: 'JAMB Mock #4', score: '325/400 (81%)', status: 'Graded', date: 'Yesterday' },
+                { name: 'Chinedu Okonkwo', exam: 'UNILAG Mock #2', score: '27/30 (90%)', status: 'Graded', date: '2 Days ago' },
+                { name: 'Blessing Chukwuma', exam: 'JAMB Mock #4', score: '302/400 (75%)', status: 'Graded', date: '3 Days ago' },
+                { name: 'Emmanuel Folorunsho', exam: 'Physics Practice #8', score: 'Awaiting Grading', status: 'Review Needed', date: '4 Hours ago' }
+              ].map((row, idx) => (
+                <div key={idx} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-900/60 transition">
+                  <div>
+                    <h5 className="font-bold text-white text-sm">{row.name}</h5>
+                    <p className="text-slate-400 text-xs font-mono">{row.exam} • Submitted {row.date}</p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="font-mono font-bold text-amber-300 text-xs">{row.score}</span>
+                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold ${
+                      row.status === 'Graded' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-amber-500/20 text-amber-300 animate-pulse'
+                    }`}>
+                      {row.status}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* SUBTAB 1: ENROLLED COURSES */}
       {activeSubTab === 'COURSES' && (

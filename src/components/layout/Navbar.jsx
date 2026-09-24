@@ -16,7 +16,7 @@ import {
 
 export default function Navbar() {
   const { activeTab, setActiveTab, openAuthModal } = useApp();
-  const { user, logout } = useAuth();
+  const { user, logout, switchRole } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [tickerIndex, setTickerIndex] = useState(0);
@@ -165,32 +165,91 @@ export default function Navbar() {
               </button>
 
               {userDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-52 glass-panel rounded-xl shadow-2xl border border-slate-700 py-2 z-50">
-                  <div className="px-3 py-1.5 border-b border-slate-800">
+                <div className="absolute right-0 mt-2 w-60 glass-panel rounded-2xl shadow-2xl border border-slate-700 py-2.5 z-50 animate-fadeIn">
+                  <div className="px-3.5 py-2 border-b border-slate-800">
                     <p className="text-xs font-bold text-white truncate">{user.name}</p>
-                    <p className="text-[10px] text-amber-400 capitalize font-mono">{user.role} Portal</p>
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-mono font-bold uppercase ${
+                        user.role === 'admin'
+                          ? 'bg-amber-400/20 text-amber-300 border border-amber-400/30'
+                          : user.role === 'tutor'
+                          ? 'bg-emerald-400/20 text-emerald-300 border border-emerald-400/30'
+                          : 'bg-blue-400/20 text-blue-300 border border-blue-400/30'
+                      }`}>
+                        {user.role === 'admin' ? 'Administrator' : user.role === 'tutor' ? 'Tutor / Faculty' : 'Student'}
+                      </span>
+                    </div>
                   </div>
 
-                  <button
-                    onClick={() => {
-                      setActiveTab(user.role === 'admin' ? 'ADMIN' : 'DASHBOARD');
-                      setUserDropdownOpen(false);
-                    }}
-                    className="w-full text-left px-3 py-2 text-xs font-semibold text-slate-200 hover:bg-slate-800 flex items-center gap-2"
-                  >
-                    <LayoutDashboard size={14} className="text-amber-400" />
-                    {user.role === 'admin' ? 'Admin Control' : 'Student Dashboard'}
-                  </button>
+                  <div className="py-1">
+                    {/* Primary Role Destination */}
+                    {user.role === 'admin' && (
+                      <button
+                        onClick={() => {
+                          setActiveTab('ADMIN');
+                          setUserDropdownOpen(false);
+                        }}
+                        className="w-full text-left px-3.5 py-2 text-xs font-semibold text-amber-300 hover:bg-slate-800 flex items-center gap-2"
+                      >
+                        <LayoutDashboard size={14} className="text-amber-400" />
+                        Executive Control Panel
+                      </button>
+                    )}
 
-                  <button
-                    onClick={() => {
-                      logout();
-                      setUserDropdownOpen(false);
-                    }}
-                    className="w-full text-left px-3 py-2 text-xs font-semibold text-rose-400 hover:bg-rose-500/10 flex items-center gap-2 border-t border-slate-800/60"
-                  >
-                    <LogOut size={14} /> Log Out
-                  </button>
+                    <button
+                      onClick={() => {
+                        setActiveTab('DASHBOARD');
+                        setUserDropdownOpen(false);
+                      }}
+                      className="w-full text-left px-3.5 py-2 text-xs font-semibold text-slate-200 hover:bg-slate-800 flex items-center gap-2"
+                    >
+                      <LayoutDashboard size={14} className="text-amber-400" />
+                      {user.role === 'admin' ? 'Candidate Dashboard View' : user.role === 'tutor' ? 'Tutor Hub & Class Roster' : 'Student Learning Dashboard'}
+                    </button>
+                  </div>
+
+                  {/* Quick Role Switcher for live testing */}
+                  <div className="px-3.5 py-2 border-t border-slate-800/80 bg-slate-900/50">
+                    <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block mb-1.5">
+                      Switch Role (RBAC Demo):
+                    </span>
+                    <div className="grid grid-cols-3 gap-1">
+                      {[
+                        { id: 'student', label: 'Student' },
+                        { id: 'tutor', label: 'Tutor' },
+                        { id: 'admin', label: 'Admin' }
+                      ].map((r) => (
+                        <button
+                          key={r.id}
+                          onClick={() => {
+                            switchRole(r.id);
+                            if (r.id === 'admin') setActiveTab('ADMIN');
+                            else setActiveTab('DASHBOARD');
+                            setUserDropdownOpen(false);
+                          }}
+                          className={`py-1 text-[10px] font-bold rounded-lg transition text-center ${
+                            user.role === r.id
+                              ? 'bg-amber-400 text-slate-950 font-black'
+                              : 'bg-slate-800 text-slate-400 hover:text-white'
+                          }`}
+                        >
+                          {r.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="pt-1 border-t border-slate-800/80">
+                    <button
+                      onClick={() => {
+                        logout();
+                        setUserDropdownOpen(false);
+                      }}
+                      className="w-full text-left px-3.5 py-2 text-xs font-semibold text-rose-400 hover:bg-rose-500/10 flex items-center gap-2"
+                    >
+                      <LogOut size={14} /> Log Out
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

@@ -32,6 +32,18 @@ export const DEFAULT_DEMO_STUDENT = {
   registeredDate: '2026-02-10'
 };
 
+export const DEFAULT_TUTOR = {
+  id: 'tut_001',
+  name: 'Engr. Daniel Bakare',
+  email: 'tutor@densuredconsult.com',
+  role: 'tutor',
+  phone: '08099887766',
+  title: 'Lead Physics & Mathematics Instructor',
+  subjects: ['Physics', 'Mathematics', 'CBT Mock Proctoring'],
+  avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300&q=80',
+  registeredDate: '2026-01-15'
+};
+
 export const DEFAULT_ADMIN = {
   id: 'adm_001',
   name: 'Akinjo Rotimi (CEO)',
@@ -81,12 +93,12 @@ export function AuthProvider({ children }) {
     let resolvedRole = 'student';
     let profileData = {};
 
-    // 1. Check if email matches executive admin
-    if (
-      fbUser.email?.toLowerCase().includes('admin') || 
-      fbUser.email === 'admin@densuredconsult.com'
-    ) {
+    // 1. Automatic role inference by verified institutional emails
+    const lowerEmail = fbUser.email?.toLowerCase() || '';
+    if (lowerEmail.includes('admin') || lowerEmail === 'admin@densuredconsult.com') {
       resolvedRole = 'admin';
+    } else if (lowerEmail.includes('tutor') || lowerEmail === 'tutor@densuredconsult.com') {
+      resolvedRole = 'tutor';
     }
 
     // 2. Fetch role and profile details from Firestore
@@ -111,7 +123,13 @@ export function AuthProvider({ children }) {
       phone: profileData.phone || '08147896930',
       targetInstitution: profileData.targetInstitution || 'University of Lagos (UNILAG)',
       targetCourse: profileData.targetCourse || 'Computer Science',
-      avatar: profileData.avatar || fbUser.photoURL || (resolvedRole === 'admin' ? '/assets/ceo_akinjo_rotimi.jpg' : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80'),
+      avatar: profileData.avatar || fbUser.photoURL || (
+        resolvedRole === 'admin' 
+          ? '/assets/ceo_akinjo_rotimi.jpg' 
+          : resolvedRole === 'tutor'
+          ? 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300&q=80'
+          : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80'
+      ),
       registeredDate: profileData.registeredDate || new Date().toISOString().split('T')[0],
       isFirebaseAuth: true
     };
@@ -132,10 +150,20 @@ export function AuthProvider({ children }) {
 
   // LOGIN (Firebase with Demo fallback)
   const login = async (email, password, role = 'student') => {
-    // 1. Direct Demo bypass for testing admin & demo credentials
+    // 1. Direct Demo bypass for testing admin, tutor, and student roles
     if (email === 'admin@densuredconsult.com' || (email.includes('admin') && password === 'admin123')) {
       setUser(DEFAULT_ADMIN);
       return { success: true, user: DEFAULT_ADMIN };
+    }
+
+    if (email === 'tutor@densuredconsult.com' || (email.includes('tutor') && password === 'tutor123')) {
+      setUser(DEFAULT_TUTOR);
+      return { success: true, user: DEFAULT_TUTOR };
+    }
+
+    if (email === 'chinedu.student@example.com' || (email.includes('student') && password === 'student123')) {
+      setUser(DEFAULT_DEMO_STUDENT);
+      return { success: true, user: DEFAULT_DEMO_STUDENT };
     }
 
     try {
@@ -148,13 +176,16 @@ export function AuthProvider({ children }) {
     } catch (err) {
       console.warn('Firebase sign in notice:', err.code, err.message);
 
-      // If user is testing demo accounts, fall back gracefully
+      // Graceful fallback for offline or quick demo testing
       if (email.includes('admin') || role === 'admin') {
         setUser(DEFAULT_ADMIN);
         return { success: true, user: DEFAULT_ADMIN };
       }
+      if (email.includes('tutor') || role === 'tutor') {
+        setUser(DEFAULT_TUTOR);
+        return { success: true, user: DEFAULT_TUTOR };
+      }
 
-      // If error is actual invalid password / wrong user, try local fallback if desired
       const studentUser = {
         ...DEFAULT_DEMO_STUDENT,
         email,
@@ -188,7 +219,7 @@ export function AuthProvider({ children }) {
           console.warn('Display name update notice:', e);
         }
 
-        // Save complete profile row to Cloud Firestore
+        // Save complete profile row to Cloud Firestore with chosen role
         try {
           await setDoc(doc(db, 'profiles', userCredential.user.uid), {
             id: userCredential.user.uid,
@@ -218,10 +249,12 @@ export function AuthProvider({ children }) {
 
     // 2. Client-side state fallback
     const newUser = {
-      id: 'std_' + Date.now(),
+      id: (desiredRole === 'admin' ? 'adm_' : desiredRole === 'tutor' ? 'tut_' : 'std_') + Date.now(),
       role: desiredRole,
       avatar: desiredRole === 'admin' 
         ? '/assets/ceo_akinjo_rotimi.jpg' 
+        : desiredRole === 'tutor'
+        ? 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300&q=80'
         : 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=300&q=80',
       registeredDate: new Date().toISOString().split('T')[0],
       ...userData
@@ -309,10 +342,12 @@ export function AuthProvider({ children }) {
     }
   };
 
-  // DYNAMIC ROLE SWITCHER (for admins, testers, and role preview)
+  // DYNAMIC ROLE SWITCHER (for live testing, admin previews, and role switching)
   const switchRole = (newRole) => {
     if (newRole === 'admin') {
       setUser(DEFAULT_ADMIN);
+    } else if (newRole === 'tutor') {
+      setUser(DEFAULT_TUTOR);
     } else if (newRole === 'student') {
       setUser(DEFAULT_DEMO_STUDENT);
     } else {
@@ -325,7 +360,13 @@ export function AuthProvider({ children }) {
   const isAdmin = role === 'admin';
   const isStudent = role === 'student';
   const isTutor = role === 'tutor';
-  const hasRole = (requiredRole) => role === requiredRole;
+  const hasRole = (requiredRoles) => {
+    if (!user) return false;
+    if (Array.isArray(requiredRoles)) {
+      return requiredRoles.includes(user.role);
+    }
+    return user.role === requiredRoles;
+  };
 
   return (
     <AuthContext.Provider value={{ 
