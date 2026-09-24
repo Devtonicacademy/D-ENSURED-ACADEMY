@@ -13,7 +13,6 @@ import {
   GraduationCap,
   BellRing
 } from '../icons/FontAwesomeIcons';
-import ThemeToggle from '../common/ThemeToggle';
 
 export default function Navbar() {
   const { activeTab, setActiveTab, openAuthModal } = useApp();
@@ -203,15 +202,10 @@ export default function Navbar() {
               <GraduationCap size={13} /> STUDENT PORTAL LOGIN
             </button>
           )}
-
-          {/* Color Theme Selector Toggle */}
-          <ThemeToggle />
         </div>
 
         {/* Mobile / Tablet Header Right Controls (< 1024px) */}
         <div className="flex lg:hidden items-center gap-1.5 shrink-0">
-          <ThemeToggle compact={true} />
-
           <button
             onClick={() => openAuthModal('register')}
             className="px-2 py-1.5 text-[11px] font-black text-slate-950 bg-amber-400 rounded-lg flex items-center gap-1 shadow"
@@ -291,12 +285,6 @@ export default function Navbar() {
                 STUDENT PORTAL LOGIN
               </button>
             )}
-
-            {/* Appearance Theme Selector in Drawer */}
-            <div className="flex items-center justify-between pt-2 px-1 text-xs text-slate-300">
-              <span className="font-mono text-[11px] text-slate-400">Color Appearance:</span>
-              <ThemeToggle />
-            </div>
           </div>
         </div>
       )}
