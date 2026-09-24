@@ -51,9 +51,9 @@ export default function Navbar() {
     { id: 'ABOUT', label: 'ABOUT' },
     { id: 'COURSES', label: 'COURSES' },
     { id: 'SERVICES', label: 'SERVICES' },
-    { id: 'CBT', label: 'CBT PRACTICE' },
+    { id: 'CBT', label: 'CBT' },
     { id: 'ADMISSIONS', label: 'ADMISSIONS' },
-    { id: 'RESULTS', label: 'SUCCESS STORIES' },
+    { id: 'RESULTS', label: 'RESULTS' },
     { id: 'BLOG', label: 'RESOURCES' },
     { id: 'CONTACT', label: 'CONTACT' },
   ];
@@ -112,24 +112,27 @@ export default function Navbar() {
             <span className="font-heading font-extrabold text-sm sm:text-base lg:text-lg tracking-tight text-white group-hover:text-amber-300 transition-colors leading-tight whitespace-nowrap">
               D ENSURED <span className="text-amber-400">CONSULT</span>
             </span>
-            <span className="text-[9px] lg:text-[10px] font-semibold tracking-wider text-blue-300/90 uppercase font-mono hidden sm:inline-block truncate max-w-[140px] xl:max-w-none">
+            <span className="text-[9px] xl:text-[10px] font-semibold tracking-wider text-blue-300/90 uppercase font-mono hidden xl:inline-block truncate">
               “We set the pace, others follow.”
             </span>
           </div>
         </div>
 
         {/* Desktop Navigation Links (Visible >= 1024px) */}
-        <nav className="hidden lg:flex items-center gap-0.5 shrink min-w-0 overflow-hidden">
+        <nav className="hidden lg:flex items-center gap-0.5 xl:gap-1 shrink-0">
           {navItems.map((item) => {
             const isActive = activeTab === item.id;
+            const isResources = item.id === 'BLOG';
             return (
               <button
                 key={item.id}
                 onClick={() => handleNavClick(item.id)}
-                className={`px-2 py-1.5 text-[11px] xl:text-xs font-bold tracking-wider rounded-lg transition-all duration-200 whitespace-nowrap ${
+                className={`px-1.5 xl:px-2.5 py-1.5 text-[11px] xl:text-xs font-bold tracking-normal xl:tracking-wider rounded-lg transition-all duration-200 whitespace-nowrap ${
                   isActive 
                     ? 'text-amber-400 bg-amber-400/10 border border-amber-400/30 shadow-inner' 
-                    : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+                    : isResources
+                    ? 'text-amber-300 hover:text-amber-200 hover:bg-slate-800/80 font-black'
+                    : 'text-slate-200 hover:text-white hover:bg-slate-800/60'
                 }`}
               >
                 {item.label}
@@ -139,10 +142,10 @@ export default function Navbar() {
         </nav>
 
         {/* Desktop CTAs & Auth (Visible >= 1024px) */}
-        <div className="hidden lg:flex items-center gap-1.5 shrink-0">
+        <div className="hidden lg:flex items-center gap-1.5 shrink-0 ml-1">
           <button
             onClick={() => openAuthModal('register')}
-            className="px-3 py-1.5 text-[10px] xl:text-[11px] font-black text-slate-950 bg-gradient-to-r from-amber-400 via-gold-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 rounded-lg shadow-md transition transform hover:-translate-y-0.5 whitespace-nowrap flex items-center gap-1"
+            className="px-2.5 xl:px-3 py-1.5 text-[10px] xl:text-[11px] font-black text-slate-950 bg-gradient-to-r from-amber-400 via-gold-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 rounded-lg shadow-md transition transform hover:-translate-y-0.5 whitespace-nowrap flex items-center gap-1"
           >
             <Sparkles size={12} /> ENROLL NOW
           </button>
