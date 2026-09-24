@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 import SubjectSelector from '../common/SubjectSelector';
@@ -18,15 +18,30 @@ import {
   Calendar,
   Building,
   Users
-} from 'lucide-react';
+} from '../icons/FontAwesomeIcons';
 
 export default function AuthModal() {
   const { isAuthModalOpen, setIsAuthModalOpen, authModalMode, setActiveTab } = useApp();
   const { login, register, loginWithGoogle } = useAuth();
 
   const [mode, setMode] = useState(authModalMode || 'login'); // 'login' | 'register'
-  const [role, setRole] = useState('student'); // 'student' | 'admin'
-  const [currentStep, setCurrentStep] = useState(1); // 1: Personal, 2: Contact/Guardian, 3: Track & Subjects, 4: Security
+  const [role, setRole] = useState('student'); // 'student' | 'tutor' | 'admin'
+  const [currentStep, setCurrentStep] = useState(1); // 1: Personal, 2: Contacts, 3: Subjects, 4: Security
+  const [googleAccount, setGoogleAccount] = useState(null); // Saved Google metadata if user came via Google
+  const [infoNotice, setInfoNotice] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  // Sync mode with parent app request
+  useEffect(() => {
+    if (authModalMode) {
+      setMode(authModalMode);
+      setCurrentStep(1);
+      setErrorMsg('');
+      setInfoNotice('');
+    }
+  }, [authModalMode]);
 
   // Form states
   const [formData, setFormData] = useState({
@@ -51,27 +66,50 @@ export default function AuthModal() {
     // Step 4: Security
     password: '',
     confirmPassword: '',
-    agreeTerms: true
+    agreeTerms: true,
+    avatar: '',
+    firebaseUid: ''
   });
-
-  const [errorMsg, setErrorMsg] = useState('');
-  const [googleLoading, setGoogleLoading] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
 
   if (!isAuthModalOpen) return null;
 
   // Social Login handler with Firebase Google OAuth
+  // Enforces that if account does not already exist on Firebase with complete profile,
+  // user MUST complete the multi-step onboarding wizard.
   const handleGoogleAuth = async () => {
     setGoogleLoading(true);
     setErrorMsg('');
+    setInfoNotice('');
     try {
       const res = await loginWithGoogle();
       if (res?.success) {
-        setIsAuthModalOpen(false);
-        setActiveTab(res.user?.role === 'admin' ? 'ADMIN' : 'DASHBOARD');
+        if (res.isNewUser) {
+          // New candidate or incomplete registration!
+          // Switch to multi-step registration wizard
+          setGoogleAccount(res.googleData);
+          setMode('register');
+          setCurrentStep(1);
+          setFormData(prev => ({
+            ...prev,
+            name: res.googleData.name || prev.name,
+            email: res.googleData.email || prev.email,
+            phone: res.googleData.phone || prev.phone,
+            avatar: res.googleData.avatar || '',
+            firebaseUid: res.googleData.firebaseUid
+          }));
+          setInfoNotice(
+            `Google identity verified (${res.googleData.email})! You must complete the 4-step registration below to configure your academic track, subject combination, and guardian contacts.`
+          );
+        } else {
+          // Existing candidate with completed profile
+          setIsAuthModalOpen(false);
+          setActiveTab(res.user?.role === 'admin' ? 'ADMIN' : 'DASHBOARD');
+        }
+      } else if (res?.error) {
+        setErrorMsg(res.error);
       }
     } catch (err) {
-      setErrorMsg(err.message || 'Google sign-in error.');
+      setErrorMsg(err.message || 'Google authentication error.');
     } finally {
       setGoogleLoading(false);
     }
@@ -82,7 +120,7 @@ export default function AuthModal() {
     setErrorMsg('');
     if (step === 1) {
       if (!formData.name.trim()) {
-        setErrorMsg('Please enter your full legal name.');
+        setErrorMsg('Please enter your full legal candidate name.');
         return false;
       }
       return true;
@@ -93,29 +131,36 @@ export default function AuthModal() {
         return false;
       }
       if (!formData.phone.trim()) {
-        setErrorMsg('Please enter your WhatsApp/phone number.');
+        setErrorMsg('Please enter your WhatsApp/phone number for admission alerts.');
         return false;
       }
       return true;
     }
     if (step === 3) {
       if (formData.selectedSubjectIds.length < 4) {
-        setErrorMsg('Please select at least 4 examination subjects.');
+        setErrorMsg('Please select at least 4 examination subjects for your track.');
         return false;
       }
       return true;
     }
     if (step === 4) {
-      if (!formData.password || formData.password.length < 6) {
-        setErrorMsg('Password must be at least 6 characters.');
+      // If user signed in via Google, password is optional backup
+      if (!googleAccount?.firebaseUid) {
+        if (!formData.password || formData.password.length < 6) {
+          setErrorMsg('Password must be at least 6 characters.');
+          return false;
+        }
+        if (formData.password !== formData.confirmPassword) {
+          setErrorMsg('Passwords do not match.');
+          return false;
+        }
+      } else if (formData.password && formData.password.length < 6) {
+        setErrorMsg('Optional portal password must be at least 6 characters.');
         return false;
       }
-      if (formData.password !== formData.confirmPassword) {
-        setErrorMsg('Passwords do not match.');
-        return false;
-      }
+
       if (!formData.agreeTerms) {
-        setErrorMsg('Please agree to the student code of conduct.');
+        setErrorMsg('Please agree to the D Ensured Consult Academy code of conduct.');
         return false;
       }
       return true;
@@ -134,9 +179,11 @@ export default function AuthModal() {
     setCurrentStep(prev => prev - 1);
   };
 
+  // LOGIN SUBMIT (with redirect to multi-step register if account not found on Firebase)
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg('');
+    setInfoNotice('');
     setSubmitting(true);
 
     if (!formData.email || !formData.password) {
@@ -150,6 +197,16 @@ export default function AuthModal() {
       if (res.success) {
         setIsAuthModalOpen(false);
         setActiveTab(res.user?.role === 'admin' ? 'ADMIN' : 'DASHBOARD');
+      } else if (res.notFound) {
+        // Redirect non-existent user directly to multi-step registration!
+        setMode('register');
+        setCurrentStep(1);
+        setInfoNotice(
+          'No account stored on Firebase for this email. Redirecting you to complete the multi-step registration below.'
+        );
+        if (res.firebaseUid) {
+          setGoogleAccount({ firebaseUid: res.firebaseUid, email: res.email });
+        }
       } else {
         setErrorMsg(res.error || 'Invalid login credentials.');
       }
@@ -160,23 +217,30 @@ export default function AuthModal() {
     }
   };
 
+  // REGISTER SUBMIT (Completes full document in Firestore with profileComplete: true)
   const handleRegisterSubmit = async (e) => {
     e.preventDefault();
     if (!validateStep(4)) return;
     setSubmitting(true);
+    setErrorMsg('');
 
     try {
       const res = await register({
+        firebaseUid: googleAccount?.firebaseUid || formData.firebaseUid,
         name: formData.name,
         email: formData.email,
-        password: formData.password,
+        password: formData.password || (googleAccount ? 'GoogleAuth@2026' : ''),
         phone: formData.phone,
         guardianName: formData.guardianName,
         guardianPhone: formData.guardianPhone,
+        gender: formData.gender,
+        dob: formData.dob,
+        stateOfOrigin: formData.stateOfOrigin,
         targetInstitution: formData.targetInstitution,
         targetCourse: formData.targetCourse,
         examTrack: formData.examTrack,
         selectedSubjects: formData.selectedSubjectIds,
+        avatar: googleAccount?.avatar || formData.avatar,
         role: role || 'student'
       });
 
@@ -215,7 +279,7 @@ export default function AuthModal() {
             />
             <div>
               <h3 className="font-heading font-extrabold text-lg text-white">
-                {mode === 'login' ? 'Candidate & Staff Portal' : 'Student Academy Registration'}
+                {mode === 'login' ? 'Candidate & Staff Portal' : 'Academy Multi-Step Registration'}
               </h3>
               <p className="text-xs text-amber-400 font-mono">D Ensured Consult Academy • RC: 8723808</p>
             </div>
@@ -248,37 +312,65 @@ export default function AuthModal() {
         {/* Modal Body */}
         <div className="p-6 sm:p-8 space-y-5">
           
+          {/* Informational Guidance Notice (e.g. Google redirect or Account not found) */}
+          {infoNotice && (
+            <div className="bg-amber-400/10 border border-amber-400/30 text-amber-300 text-xs p-3.5 rounded-xl flex items-start gap-2.5 animate-fadeIn leading-relaxed">
+              <ShieldCheck size={18} className="shrink-0 mt-0.5 text-amber-400" />
+              <span>{infoNotice}</span>
+            </div>
+          )}
+
+          {/* Error Message Notice */}
           {errorMsg && (
             <div className="bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs p-3 rounded-xl flex items-center gap-2 animate-shake">
-              <ShieldAlert size={16} className="shrink-0" />
+              <ShieldAlert size={16} className="shrink-0 text-rose-400" />
               <span>{errorMsg}</span>
             </div>
           )}
 
-          {/* Quick Social Authentication (Google) */}
-          <div className="space-y-3">
-            <button
-              type="button"
-              onClick={handleGoogleAuth}
-              disabled={googleLoading}
-              className="w-full py-2.5 px-4 bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-amber-400/50 rounded-xl text-xs font-bold text-slate-200 transition flex items-center justify-center gap-2.5 shadow-sm"
-            >
-              {/* Google Colored Icon SVG */}
-              <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
-                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
-                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
-              </svg>
-              <span>{googleLoading ? 'Connecting Google Account...' : 'Continue with Google'}</span>
-            </button>
-
-            <div className="flex items-center gap-3">
-              <div className="flex-1 h-px bg-slate-800" />
-              <span className="text-[10px] font-mono text-slate-500 uppercase">Or Continue with Form</span>
-              <div className="flex-1 h-px bg-slate-800" />
+          {/* Google Connected Candidate Badge (in registration mode) */}
+          {mode === 'register' && googleAccount && (
+            <div className="flex items-center gap-3 p-3 bg-brandBlue-950/70 border border-amber-400/30 rounded-2xl">
+              <img 
+                src={googleAccount.avatar || '/assets/d_ensured_logo.jpg'} 
+                alt={googleAccount.name || 'Candidate'} 
+                className="w-10 h-10 rounded-full border border-amber-400 object-cover shrink-0" 
+              />
+              <div className="text-xs min-w-0">
+                <div className="flex items-center gap-1.5 text-amber-400 font-bold">
+                  <CheckCircle2 size={14} /> Google Account Authenticated
+                </div>
+                <p className="text-slate-300 truncate font-mono text-[11px]">{googleAccount.email}</p>
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* Quick Social Authentication (Google) - Shown on Login or Step 1 of Register */}
+          {(!googleAccount && (mode === 'login' || currentStep === 1)) && (
+            <div className="space-y-3">
+              <button
+                type="button"
+                onClick={handleGoogleAuth}
+                disabled={googleLoading}
+                className="w-full py-2.5 px-4 bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-amber-400/50 rounded-xl text-xs font-bold text-slate-200 transition flex items-center justify-center gap-2.5 shadow-sm"
+              >
+                {/* Google Colored Icon SVG */}
+                <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
+                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
+                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
+                </svg>
+                <span>{googleLoading ? 'Connecting Google Account...' : 'Continue with Google'}</span>
+              </button>
+
+              <div className="flex items-center gap-3">
+                <div className="flex-1 h-px bg-slate-800" />
+                <span className="text-[10px] font-mono text-slate-500 uppercase">Or Continue with Form</span>
+                <div className="flex-1 h-px bg-slate-800" />
+              </div>
+            </div>
+          )}
 
           {/* ===================== MODE: LOGIN ===================== */}
           {mode === 'login' && (
@@ -340,9 +432,10 @@ export default function AuthModal() {
 
               <button
                 type="submit"
-                className="w-full py-3.5 text-xs font-bold text-slate-950 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 rounded-xl shadow-lg transition"
+                disabled={submitting}
+                className="w-full py-3.5 text-xs font-bold text-slate-950 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 rounded-xl shadow-lg transition disabled:opacity-50"
               >
-                Sign In to {role === 'admin' ? 'Executive Admin Portal' : role === 'tutor' ? 'Tutor Portal' : 'Student Portal'}
+                {submitting ? 'Authenticating with Firebase...' : `Sign In to ${role === 'admin' ? 'Executive Admin Portal' : role === 'tutor' ? 'Tutor Portal' : 'Student Portal'}`}
               </button>
 
               <div className="text-center pt-3 border-t border-slate-800">
@@ -353,6 +446,8 @@ export default function AuthModal() {
                     onClick={() => {
                       setMode('register');
                       setCurrentStep(1);
+                      setInfoNotice('');
+                      setErrorMsg('');
                     }}
                     className="text-amber-400 font-bold hover:underline"
                   >
@@ -426,6 +521,29 @@ export default function AuthModal() {
                       />
                     </div>
                   </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">Account Role</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {[
+                        { id: 'student', label: 'Candidate / Student' },
+                        { id: 'tutor', label: 'Tutor / Faculty' }
+                      ].map((r) => (
+                        <button
+                          key={r.id}
+                          type="button"
+                          onClick={() => setRole(r.id)}
+                          className={`py-2 px-3 text-xs font-bold rounded-xl border transition ${
+                            role === r.id
+                              ? 'bg-amber-400 text-slate-950 border-amber-400 shadow-md'
+                              : 'bg-slate-900 text-slate-400 border-slate-700 hover:text-white'
+                          }`}
+                        >
+                          {r.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -441,16 +559,21 @@ export default function AuthModal() {
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-semibold text-slate-300 mb-1">Email Address *</label>
+                      <label className="block text-xs font-semibold text-slate-300 mb-1">
+                        Email Address * {googleAccount && <span className="text-amber-400 font-mono text-[10px]">(Google Verified)</span>}
+                      </label>
                       <div className="relative">
                         <Mail size={16} className="absolute left-3 top-3 text-slate-500" />
                         <input
                           type="email"
                           required
+                          readOnly={!!googleAccount}
                           placeholder="candidate@gmail.com"
                           value={formData.email}
                           onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                          className="w-full pl-9 pr-4 py-2.5 bg-slate-900/80 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-amber-400"
+                          className={`w-full pl-9 pr-4 py-2.5 bg-slate-900/80 border rounded-xl text-xs text-white focus:outline-none ${
+                            googleAccount ? 'border-amber-400/50 bg-slate-950/60 cursor-not-allowed' : 'border-slate-700 focus:border-amber-400'
+                          }`}
                         />
                       </div>
                     </div>
@@ -570,49 +693,76 @@ export default function AuthModal() {
                     <span className="text-xs font-mono font-bold text-amber-400 uppercase tracking-wider">
                       Section 4 of 4: Security & Confirmation
                     </span>
-                    <p className="text-xs text-slate-400">Create your private portal password to access CBT exams & class schedules.</p>
+                    <p className="text-xs text-slate-400">Finalize your academy account access credentials.</p>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-300 mb-1">Portal Password *</label>
-                      <div className="relative">
-                        <Lock size={16} className="absolute left-3 top-3 text-slate-500" />
+                  {googleAccount ? (
+                    <div className="p-4 bg-slate-900/90 rounded-2xl border border-amber-400/40 text-xs space-y-3">
+                      <div className="flex items-center gap-2 text-amber-400 font-bold">
+                        <CheckCircle2 size={16} /> Identity Confirmed via Google OAuth
+                      </div>
+                      <p className="text-slate-300 leading-relaxed text-xs">
+                        Your account is linked to your Google identity (<strong>{googleAccount.email}</strong>). You will be able to log in with 1-click Google authentication.
+                      </p>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-300 mb-1">
+                          Optional Portal Password (for direct email logins)
+                        </label>
                         <input
                           type="password"
-                          required
-                          placeholder="Minimum 6 characters"
+                          placeholder="Optional backup password (or leave blank)"
                           value={formData.password}
                           onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                          className="w-full pl-9 pr-4 py-2.5 bg-slate-900/80 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-amber-400"
+                          className="w-full px-3.5 py-2.5 bg-slate-950/80 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-amber-400"
                         />
                       </div>
                     </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-300 mb-1">Portal Password *</label>
+                        <div className="relative">
+                          <Lock size={16} className="absolute left-3 top-3 text-slate-500" />
+                          <input
+                            type="password"
+                            required
+                            placeholder="Minimum 6 characters"
+                            value={formData.password}
+                            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                            className="w-full pl-9 pr-4 py-2.5 bg-slate-900/80 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-amber-400"
+                          />
+                        </div>
+                      </div>
 
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-300 mb-1">Confirm Password *</label>
-                      <div className="relative">
-                        <Lock size={16} className="absolute left-3 top-3 text-slate-500" />
-                        <input
-                          type="password"
-                          required
-                          placeholder="Re-enter password"
-                          value={formData.confirmPassword}
-                          onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                          className="w-full pl-9 pr-4 py-2.5 bg-slate-900/80 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-amber-400"
-                        />
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-300 mb-1">Confirm Password *</label>
+                        <div className="relative">
+                          <Lock size={16} className="absolute left-3 top-3 text-slate-500" />
+                          <input
+                            type="password"
+                            required
+                            placeholder="Re-enter password"
+                            value={formData.confirmPassword}
+                            onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                            className="w-full pl-9 pr-4 py-2.5 bg-slate-900/80 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-amber-400"
+                          />
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  )}
 
                   {/* Summary Review Card */}
                   <div className="p-4 bg-slate-900/90 rounded-2xl border border-slate-800 text-xs space-y-2">
-                    <span className="text-[10px] font-mono text-amber-400 uppercase tracking-wider block">Registration Summary:</span>
+                    <span className="text-[10px] font-mono text-amber-400 uppercase tracking-wider block font-bold">
+                      Registration Summary Confirmation:
+                    </span>
                     <div className="grid grid-cols-2 gap-2 text-slate-300">
                       <div><strong className="text-white">Candidate:</strong> {formData.name || 'Not provided'}</div>
+                      <div><strong className="text-white">Role:</strong> <span className="capitalize">{role}</span></div>
                       <div><strong className="text-white">Track:</strong> {formData.examTrack}</div>
                       <div><strong className="text-white">Institution:</strong> {formData.targetInstitution}</div>
                       <div><strong className="text-white">Course:</strong> {formData.targetCourse}</div>
+                      <div><strong className="text-white">Selected Subjects:</strong> {formData.selectedSubjectIds.length} Selected</div>
                     </div>
                   </div>
 
@@ -643,10 +793,15 @@ export default function AuthModal() {
                 ) : (
                   <button
                     type="button"
-                    onClick={() => setMode('login')}
+                    onClick={() => {
+                      setMode('login');
+                      setGoogleAccount(null);
+                      setInfoNotice('');
+                      setErrorMsg('');
+                    }}
                     className="text-xs text-slate-400 hover:text-white"
                   >
-                    Already have an account? Sign in
+                    Already registered? Sign in
                   </button>
                 )}
 
@@ -662,9 +817,11 @@ export default function AuthModal() {
                   <button
                     type="button"
                     onClick={handleRegisterSubmit}
-                    className="py-3 px-6 text-xs font-black text-slate-950 bg-gradient-to-r from-amber-400 via-gold-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 rounded-xl shadow-xl transition flex items-center gap-2 ml-auto"
+                    disabled={submitting}
+                    className="py-3 px-6 text-xs font-black text-slate-950 bg-gradient-to-r from-amber-400 via-gold-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 rounded-xl shadow-xl transition flex items-center gap-2 ml-auto disabled:opacity-50"
                   >
-                    <ShieldCheck size={16} /> Complete Registration & Enter Portal
+                    <ShieldCheck size={16} /> 
+                    {submitting ? 'Creating Profile on Firebase...' : 'Complete Registration & Enter Portal'}
                   </button>
                 )}
               </div>
