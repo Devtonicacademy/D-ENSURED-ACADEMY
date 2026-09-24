@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 import SubjectSelector from '../common/SubjectSelector';
@@ -12,71 +12,183 @@ import {
   ShieldCheck, 
   HelpCircle, 
   Calendar, 
-  Search,
-  BookOpen
-} from 'lucide-react';
+  Search, 
+  BookOpen 
+} from '../icons/FontAwesomeIcons';
+
+const BASE_INSTITUTIONS = [
+  {
+    id: 'UNILAG',
+    name: 'University of Lagos (UNILAG)',
+    screeningType: 'Post-UTME CBT Exam (30 Marks)',
+    minJamb: '200+ UTME Cut-off',
+    campaignBadge: 'UNILAG Target 25/30 Prep Active',
+    datesText: 'July 27th – 31st, 2026',
+    description: "UNILAG calculates aggregate score as JAMB (50%) + Post-UTME (30%) + O'Level (20%). Scoring 25+ in Post-UTME is essential for Medicine, Law, Engineering, and Mass Communication."
+  },
+  {
+    id: 'LASU',
+    name: 'Lagos State University (LASU)',
+    screeningType: 'Online Point Grading System',
+    minJamb: '195+ UTME Cut-off',
+    campaignBadge: "O'Level Grading Support",
+    datesText: 'Session 2026/2027',
+    description: "LASU uses pure point grading based on O'Level subject distinctions and UTME score. Proper subject mapping is crucial for top departments."
+  },
+  {
+    id: 'UI',
+    name: 'University of Ibadan (UI)',
+    screeningType: 'Post-UTME CBT Screening',
+    minJamb: '200+ UTME Cut-off',
+    campaignBadge: 'UI CBT Special Drills',
+    datesText: 'Session 2026/2027',
+    description: 'Strict adherence to subject combinations and high UTME score targets required for competitive courses at Nigeria’s premier university.'
+  },
+  {
+    id: 'OAU',
+    name: 'Obafemi Awolowo University (OAU)',
+    screeningType: 'Post-UTME Screening Exam',
+    minJamb: '200+ UTME Cut-off',
+    campaignBadge: 'OAU Cut-off Advisory',
+    datesText: 'Session 2026/2027',
+    description: 'Aggressive cut-off marks across Health Sciences and Technology faculties. High speed and accuracy essential.'
+  },
+  {
+    id: 'FUTA',
+    name: 'Federal University of Technology, Akure (FUTA)',
+    screeningType: 'Computer-Based Screening Test (CBST)',
+    minJamb: '180+ UTME Cut-off',
+    campaignBadge: 'FUTA Science & Tech Drills',
+    datesText: 'Session 2026/2027',
+    description: 'Premier technology varsity screening focusing on Science, Engineering, and Mathematical aptitude.'
+  },
+  {
+    id: 'UNIBEN',
+    name: 'University of Benin (UNIBEN)',
+    screeningType: 'Post-UTME Computer-Based Test',
+    minJamb: '200+ UTME Cut-off',
+    campaignBadge: 'UNIBEN Mock Drills Active',
+    datesText: 'Session 2026/2027',
+    description: 'Comprehensive computer-based assessment testing speed and accuracy across standard 4-subject combinations.'
+  },
+  {
+    id: 'UNILORIN',
+    name: 'University of Ilorin (UNILORIN)',
+    screeningType: 'Post-UTME CBT Assessment',
+    minJamb: '180+ UTME Cut-off',
+    campaignBadge: 'UNILORIN Speedy Track',
+    datesText: 'Session 2026/2027',
+    description: 'Consistently one of the most applied-to varsities in Nigeria. High competitiveness necessitates 250+ UTME aggregate.'
+  },
+  {
+    id: 'UNN',
+    name: 'University of Nigeria, Nsukka (UNN)',
+    screeningType: 'Post-UTME CBT Screening',
+    minJamb: '160–200+ UTME Cut-off',
+    campaignBadge: 'Lions Portal Coaching',
+    datesText: 'Session 2026/2027',
+    description: 'Rigorous CBT screening across registered JAMB subjects with departmental cut-off weighing.'
+  }
+];
+
+function findMatchId(target, list) {
+  if (!target) return list[0]?.id || 'UNILAG';
+  const clean = target.trim().toLowerCase();
+  
+  // Exact id or name match
+  const found = list.find(inst => 
+    inst.id.toLowerCase() === clean ||
+    clean.includes(inst.id.toLowerCase()) ||
+    inst.name.toLowerCase().includes(clean) ||
+    clean.includes(inst.name.toLowerCase())
+  );
+  return found ? found.id : null;
+}
+
+function buildInstitutionsList(registeredTarget) {
+  if (!registeredTarget) return BASE_INSTITUTIONS;
+
+  const matchId = findMatchId(registeredTarget, BASE_INSTITUTIONS);
+  if (matchId) {
+    return BASE_INSTITUTIONS;
+  }
+
+  // Generate dynamic varsity entry for user's custom registered institution
+  const clean = registeredTarget.trim();
+  const acronymMatch = clean.match(/\(([^)]+)\)/);
+  const acronym = acronymMatch ? acronymMatch[1] : (clean.split(' ')[0].toUpperCase() || 'VARSITY');
+
+  const customEntry = {
+    id: acronym,
+    name: clean,
+    screeningType: 'Post-UTME Screening & Verification',
+    minJamb: '180–200+ UTME Benchmark',
+    campaignBadge: `${acronym} Registered Choice Hub`,
+    datesText: 'Session 2026/2027',
+    description: `Specialized admission preparation, cut-off evaluation, and department screening consultation for ${clean}, configured directly from your academy registration profile.`
+  };
+
+  return [customEntry, ...BASE_INSTITUTIONS];
+}
 
 export default function AdmissionsPage() {
-  const { openServiceModal, initiatePayment } = useApp();
+  const { openServiceModal } = useApp();
   const { user } = useAuth();
 
-  const [selectedInst, setSelectedInst] = useState('UNILAG');
+  const registeredVarsity = user?.targetInstitution || '';
+
+  const institutions = useMemo(() => {
+    return buildInstitutionsList(registeredVarsity);
+  }, [registeredVarsity]);
+
+  const [selectedInst, setSelectedInst] = useState(() => {
+    const list = buildInstitutionsList(registeredVarsity);
+    const matchId = findMatchId(registeredVarsity, list);
+    return matchId || list[0]?.id || 'UNILAG';
+  });
+
   const [sandboxSubjects, setSandboxSubjects] = useState(['eng', 'math', 'phy', 'chem']);
   const [formData, setFormData] = useState({
     name: user ? user.name : '',
     phone: user ? user.phone : '',
     jambScore: user ? user.targetJambScore || 280 : 280,
-    targetInstitution: 'UNILAG',
-    targetCourse: 'Computer Science',
+    targetInstitution: user ? user.targetInstitution || 'University of Lagos (UNILAG)' : 'UNILAG',
+    targetCourse: user ? user.targetCourse || 'Computer Science' : 'Computer Science',
     olevelStatus: 'Complete (1 Sitting)'
   });
   const [evaluated, setEvaluated] = useState(false);
 
-  const INSTITUTIONS = [
-    {
-      id: 'UNILAG',
-      name: 'University of Lagos (UNILAG)',
-      screeningType: 'Post-UTME CBT Exam (30 Marks)',
-      minJamb: '200+ UTME Cut-off',
-      campaignBadge: 'UNILAG Target 25/30 Prep Active',
-      datesText: 'July 27th – 31st, 2026',
-      description: 'UNILAG calculates aggregate score as JAMB (50%) + Post-UTME (30%) + O\'Level (20%). Scoring 25+ in Post-UTME is essential for Medicine, Law, Engineering, and Mass Communication.'
-    },
-    {
-      id: 'LASU',
-      name: 'Lagos State University (LASU)',
-      screeningType: 'Online Point Grading System',
-      minJamb: '195+ UTME Cut-off',
-      campaignBadge: 'O\'Level Grading Support',
-      datesText: 'Session 2026/2027',
-      description: 'LASU uses pure point grading based on O\'Level subject distinctions and UTME score. Proper subject mapping is crucial.'
-    },
-    {
-      id: 'UI',
-      name: 'University of Ibadan (UI)',
-      screeningType: 'Post-UTME CBT Screening',
-      minJamb: '200+ UTME Cut-off',
-      campaignBadge: 'UI CBT Special Drills',
-      datesText: 'Session 2026/2027',
-      description: 'Strict adherence to subject combinations and high UTME score targets required for competitive courses.'
-    },
-    {
-      id: 'OAU',
-      name: 'Obafemi Awolowo University (OAU)',
-      screeningType: 'Post-UTME Screening Exam',
-      minJamb: '200+ UTME Cut-off',
-      campaignBadge: 'OAU Cut-off Advisory',
-      datesText: 'Session 2026/2027',
-      description: 'Aggressive cut-off marks across Health Sciences and Technology faculties.'
+  // Synchronize Specialized Varsity Hub automatically whenever user signs in or changes profile
+  useEffect(() => {
+    if (user?.targetInstitution) {
+      const matchId = findMatchId(user.targetInstitution, institutions);
+      if (matchId) {
+        setSelectedInst(matchId);
+      }
+      setFormData(prev => ({
+        ...prev,
+        name: user.name || prev.name,
+        phone: user.phone || prev.phone,
+        jambScore: user.targetJambScore || prev.jambScore,
+        targetInstitution: user.targetInstitution || prev.targetInstitution,
+        targetCourse: user.targetCourse || prev.targetCourse
+      }));
     }
-  ];
+  }, [user, institutions]);
 
   const handleEvaluateProfile = (e) => {
     e.preventDefault();
     setEvaluated(true);
   };
 
-  const activeInstObj = INSTITUTIONS.find(i => i.id === selectedInst) || INSTITUTIONS[0];
+  const activeInstObj = institutions.find(i => i.id === selectedInst) || institutions[0];
+
+  const isUserRegisteredInst = user?.targetInstitution && (
+    activeInstObj.id.toLowerCase() === user.targetInstitution.toLowerCase() ||
+    user.targetInstitution.toLowerCase().includes(activeInstObj.id.toLowerCase()) ||
+    activeInstObj.name.toLowerCase().includes(user.targetInstitution.toLowerCase()) ||
+    user.targetInstitution.toLowerCase().includes(activeInstObj.name.toLowerCase())
+  );
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-16 animate-fadeIn">
@@ -98,44 +210,28 @@ export default function AdmissionsPage() {
       {/* ADMISSION JOURNEY STEPS */}
       <div className="space-y-6">
         <h2 className="font-heading font-bold text-xl text-white text-center">The D Ensured 7-Step Admission Journey</h2>
-        
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { step: '01', title: '1-on-1 Consultation', desc: 'Evaluate academic performance and career ambitions.' },
-            { step: '02', title: 'Profile & Cut-off Review', desc: 'Analyze target institution departmental cut-offs and quotas.' },
-            { step: '03', title: 'Post-UTME Preparation', desc: 'Intensive speed CBT coaching targeting top marks.' },
-            { step: '04', title: 'CAPS & Document Verification', desc: 'Ensure O\'Level results and personal details match.' },
+            { step: '01', title: 'Target University Mapping', desc: 'Identify cut-off scores, catchment areas, and course quota criteria.' },
+            { step: '02', title: 'UTME Subject Strategy', desc: 'Ensure exact compliance with official JAMB brochure requirements.' },
+            { step: '03', title: 'High-Score Exam Prep', desc: 'Daily intensive drills targeting 300+ in UTME and 25+ in Post-UTME.' },
+            { step: '04', title: 'O\'Level Upload & CAPS Verification', desc: 'Prevent admission disqualification due to portal upload errors.' },
             { step: '05', title: 'Change of Course / Varsity', desc: 'Execute timely portal adjustments if score requires realignment.' },
-            { step: '06', title: 'Screening Clearance', desc: 'Physical and online document submission tracking.' },
-            { step: '07', title: 'Admission Acceptance', desc: 'Accept offer on JAMB CAPS and generate official matriculation slip.' }
-          ].map((item, idx) => (
-            <div key={idx} className="glass-card p-5 rounded-2xl border border-slate-800 space-y-2">
-              <span className="text-xs font-mono font-bold text-amber-400 bg-amber-400/10 px-2.5 py-0.5 rounded border border-amber-400/20">
-                Step {item.step}
-              </span>
-              <h3 className="font-heading font-bold text-base text-white">{item.title}</h3>
-              <p className="text-xs text-slate-400">{item.desc}</p>
+            { step: '06', title: 'Post-UTME Screening Drills', desc: 'Specialized CBT mock rehearsals matching specific varsity formats.' },
+            { step: '07', title: 'CAPS Acceptance & Clearance', desc: 'Guide matriculation number generation and final departmental clearance.' }
+          ].map((s) => (
+            <div key={s.step} className="glass-card p-5 rounded-2xl border border-slate-800 space-y-2 hover:border-amber-400/40 transition">
+              <span className="font-mono font-extrabold text-amber-400 text-lg sm:text-xl block">{s.step}</span>
+              <h3 className="font-heading font-bold text-sm text-white">{s.title}</h3>
+              <p className="text-xs text-slate-400 leading-relaxed">{s.desc}</p>
             </div>
           ))}
         </div>
       </div>
 
-      {/* INTERACTIVE SUBJECT COMBINATION & ELIGIBILITY SANDBOX */}
-      <div className="glass-panel p-8 sm:p-10 rounded-3xl border border-slate-800 space-y-6">
-        <div className="text-center max-w-2xl mx-auto space-y-2">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-300 text-xs font-mono font-bold uppercase tracking-wider">
-            <BookOpen size={13} className="text-blue-400" />
-            <span>Interactive UTME Combination Validator</span>
-          </div>
-          <h2 className="font-heading font-extrabold text-2xl sm:text-3xl text-white">
-            Subject Combination & Course Mapping
-          </h2>
-          <p className="text-xs text-slate-400">
-            A single mismatched subject can invalidate an admission bid. Use our selector below to test combinations against Nigerian university departmental requirements.
-          </p>
-        </div>
-
-        <SubjectSelector
+      {/* SUBJECT COMBINATION SANBOX WIDGET */}
+      <div className="space-y-4">
+        <SubjectSelector 
           maxSelection={4}
           selectedSubjectIds={sandboxSubjects}
           onChange={(newIds) => setSandboxSubjects(newIds)}
@@ -144,14 +240,21 @@ export default function AdmissionsPage() {
         />
       </div>
 
-      {/* POST-UTME INSTITUTION HUB (UNILAG spotlight) */}
+      {/* POST-UTME INSTITUTION HUB (SPECIALISED VARSITY HUB) */}
       <div className="glass-panel p-8 sm:p-12 rounded-3xl border border-amber-400/30 gold-glow space-y-8">
         
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <span className="text-xs font-mono font-bold text-amber-300 uppercase tracking-wider">
-              Specialized Varsity Hub
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-mono font-bold text-amber-300 uppercase tracking-wider">
+                Specialized Varsity Hub
+              </span>
+              {user?.targetInstitution && (
+                <span className="px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/30 text-[10px] font-mono">
+                  Synchronized with Profile
+                </span>
+              )}
+            </div>
             <h2 className="font-heading font-extrabold text-2xl sm:text-3xl text-white mt-1">
               Institution Post-UTME Preparation
             </h2>
@@ -159,28 +262,50 @@ export default function AdmissionsPage() {
 
           {/* Institution Switcher Pills */}
           <div className="flex flex-wrap gap-2">
-            {INSTITUTIONS.map((inst) => (
-              <button
-                key={inst.id}
-                onClick={() => setSelectedInst(inst.id)}
-                className={`px-3.5 py-1.5 text-xs font-bold rounded-xl border transition ${
-                  selectedInst === inst.id
-                    ? 'bg-amber-400 text-slate-950 border-amber-400 shadow'
-                    : 'bg-slate-900 border-slate-800 text-slate-300 hover:text-white'
-                }`}
-              >
-                {inst.id}
-              </button>
-            ))}
+            {institutions.map((inst) => {
+              const isTarget = user?.targetInstitution && (
+                inst.id.toLowerCase() === user.targetInstitution.toLowerCase() ||
+                user.targetInstitution.toLowerCase().includes(inst.id.toLowerCase()) ||
+                inst.name.toLowerCase().includes(user.targetInstitution.toLowerCase()) ||
+                user.targetInstitution.toLowerCase().includes(inst.name.toLowerCase())
+              );
+
+              return (
+                <button
+                  key={inst.id}
+                  onClick={() => setSelectedInst(inst.id)}
+                  className={`px-3.5 py-1.5 text-xs font-bold rounded-xl border transition flex items-center gap-1.5 ${
+                    selectedInst === inst.id
+                      ? 'bg-amber-400 text-slate-950 border-amber-400 shadow-md font-black'
+                      : 'bg-slate-900 border-slate-800 text-slate-300 hover:text-white'
+                  }`}
+                >
+                  <span>{inst.id}</span>
+                  {isTarget && (
+                    <span 
+                      title="Your registered varsity" 
+                      className={`w-2 h-2 rounded-full ${selectedInst === inst.id ? 'bg-slate-950' : 'bg-amber-400 animate-pulse'}`} 
+                    />
+                  )}
+                </button>
+              );
+            })}
           </div>
         </div>
 
         {/* Selected Institution Banner */}
         <div className="bg-slate-900/90 p-6 sm:p-8 rounded-2xl border border-slate-800 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
           <div className="lg:col-span-8 space-y-4">
-            <span className="bg-amber-400/20 text-amber-300 border border-amber-400/30 text-[10px] font-mono font-bold px-3 py-1 rounded-full uppercase">
-              {activeInstObj.campaignBadge}
-            </span>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="bg-amber-400/20 text-amber-300 border border-amber-400/30 text-[10px] font-mono font-bold px-3 py-1 rounded-full uppercase">
+                {activeInstObj.campaignBadge}
+              </span>
+              {isUserRegisteredInst && (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-400 text-slate-950 text-[11px] font-mono font-black shadow animate-fadeIn">
+                  <CheckCircle2 size={13} /> Your Registered Choice ({user?.targetCourse || 'Target Course'})
+                </span>
+              )}
+            </div>
             
             <h3 className="font-heading font-extrabold text-xl sm:text-2xl text-white">
               {activeInstObj.name}
@@ -269,7 +394,7 @@ export default function AdmissionsPage() {
                 <input
                   type="text"
                   required
-                  placeholder="e.g. UNILAG"
+                  placeholder="e.g. University of Lagos (UNILAG)"
                   value={formData.targetInstitution}
                   onChange={(e) => setFormData({ ...formData, targetInstitution: e.target.value })}
                   className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-amber-400"

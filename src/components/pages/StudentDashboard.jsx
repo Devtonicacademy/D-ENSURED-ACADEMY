@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 import { COURSES_LIST } from '../../data/coursesData';
@@ -14,13 +14,13 @@ import {
   FileCheck, 
   User, 
   ShieldCheck, 
-  Bell,
-  Download,
-  Building2
-} from 'lucide-react';
+  Bell, 
+  Download, 
+  Building2 
+} from '../icons/FontAwesomeIcons';
 
 export default function StudentDashboard() {
-  const { setActiveTab, enrolledCourses, cbtAttempts, serviceRequests, openServiceModal, notifications } = useApp();
+  const { setActiveTab, enrolledCourses, cbtAttempts, serviceRequests, openServiceModal } = useApp();
   const { user, updateProfile } = useAuth();
 
   const isTutor = user?.role === 'tutor';
@@ -35,7 +35,6 @@ export default function StudentDashboard() {
   ];
 
   const [activeSubTab, setActiveSubTab] = useState(isTutor ? 'TUTOR_STUDENTS' : 'COURSES');
-  const [editingProfile, setEditingProfile] = useState(false);
   const [profileData, setProfileData] = useState({
     name: user ? user.name : '',
     targetInstitution: user ? user.targetInstitution || 'University of Lagos (UNILAG)' : 'UNILAG',
@@ -44,12 +43,24 @@ export default function StudentDashboard() {
     phone: user ? user.phone : '08123456789'
   });
 
+  // Keep profile state in sync when user signs in or switches
+  useEffect(() => {
+    if (user) {
+      setProfileData({
+        name: user.name || '',
+        targetInstitution: user.targetInstitution || 'University of Lagos (UNILAG)',
+        targetCourse: user.targetCourse || 'Computer Science',
+        targetJambScore: user.targetJambScore || 320,
+        phone: user.phone || '08123456789'
+      });
+    }
+  }, [user]);
+
   const enrolledCourseObjs = COURSES_LIST.filter(c => enrolledCourses.includes(c.id));
 
   const handleSaveProfile = (e) => {
     e.preventDefault();
     updateProfile(profileData);
-    setEditingProfile(false);
   };
 
   return (
@@ -59,7 +70,7 @@ export default function StudentDashboard() {
       {isAdmin && (
         <div className="p-4 bg-amber-400/10 border border-amber-400/30 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-amber-300">
           <div className="flex items-center gap-2">
-            <span className="text-base">👑</span>
+            <span className="text-base font-bold text-amber-400">👑</span>
             <span><strong>Administrator Preview Mode:</strong> You are viewing the candidate learning environment. Switch to Executive Admin Panel anytime.</span>
           </div>
           <button
@@ -77,7 +88,7 @@ export default function StudentDashboard() {
           <img 
             src={user ? user.avatar : '/assets/d_ensured_logo.jpg'} 
             alt="Profile" 
-            className="w-16 h-16 rounded-full border-2 border-amber-400 object-cover shadow-lg"
+            className="w-16 h-16 rounded-full border-2 border-amber-400 object-cover shadow-lg" 
           />
           <div>
             <div className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase mb-1 ${
@@ -92,20 +103,31 @@ export default function StudentDashboard() {
             <h1 className="font-heading font-extrabold text-2xl sm:text-3xl text-white">
               Welcome Back, {user ? user.name.split(' ')[0] : 'Scholar'}!
             </h1>
-            <p className="text-xs text-slate-300 mt-0.5">
+            <div className="text-xs text-slate-300 mt-0.5 flex flex-wrap items-center gap-1.5">
               {isTutor ? (
-                <>Assigned Specialty: <strong className="text-emerald-400 font-bold">Physics & Mathematics Coaching</strong> • 68 Students in Cohort</>
+                <span>Assigned Specialty: <strong className="text-emerald-400 font-bold">Physics & Mathematics Coaching</strong> • 68 Students in Cohort</span>
               ) : (
-                <>Target: <strong className="text-amber-400 font-bold">{user ? user.targetCourse : 'Course'}</strong> at <strong className="text-amber-400 font-bold">{user ? user.targetInstitution : 'Varsity'}</strong> (Goal UTME: {user ? user.targetJambScore : 320})</>
+                <>
+                  <span>Target: <strong className="text-amber-400 font-bold">{user ? user.targetCourse : 'Course'}</strong> at <strong className="text-amber-400 font-bold">{user ? user.targetInstitution : 'Varsity'}</strong> (Goal UTME: {user ? user.targetJambScore : 320})</span>
+                  {user?.targetInstitution && (
+                    <button
+                      onClick={() => setActiveTab('ADMISSIONS')}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-400/20 hover:bg-amber-400/30 text-amber-300 border border-amber-400/30 text-[10px] font-mono font-bold transition ml-1"
+                      title="Explore Post-UTME screening requirements for your varsity in the Specialized Varsity Hub"
+                    >
+                      <Building2 size={10} /> View Varsity Hub &rarr;
+                    </button>
+                  )}
+                </>
               )}
-            </p>
+            </div>
           </div>
         </div>
 
         {/* Quick Streak & Stats */}
         <div className="flex items-center gap-4 bg-slate-900/90 p-3.5 rounded-2xl border border-slate-800 font-mono text-xs text-slate-200">
           <div className="flex items-center gap-2 pr-4 border-r border-slate-800">
-            <Flame className="text-amber-400 fill-amber-400" size={20} />
+            <Flame className="text-amber-400" size={20} />
             <div>
               <span className="block font-extrabold text-amber-400 text-sm">14 Days</span>
               <span className="text-[10px] text-slate-400">Study Streak</span>
@@ -252,9 +274,9 @@ export default function StudentDashboard() {
                   <span className="text-xs text-slate-400 font-mono">{course.format}</span>
                   <button
                     onClick={() => setActiveTab('CBT')}
-                    className="px-4 py-2 text-xs font-bold text-slate-950 bg-amber-400 hover:bg-amber-300 rounded-xl transition flex items-center gap-1"
+                    className="px-4 py-2 text-xs font-bold text-slate-950 bg-amber-400 hover:bg-amber-300 rounded-xl transition flex items-center gap-1.5"
                   >
-                    <Play size={14} fill="currentColor" /> Continue Learning
+                    <Play size={14} /> Continue Learning
                   </button>
                 </div>
               </div>
@@ -350,7 +372,18 @@ export default function StudentDashboard() {
       {/* SUBTAB 4: PROFILE SETTINGS */}
       {activeSubTab === 'PROFILE' && (
         <div className="glass-panel p-6 sm:p-8 rounded-3xl border border-slate-800 space-y-6 max-w-xl mx-auto">
-          <h3 className="font-heading font-bold text-lg text-white">Target Academic Profile</h3>
+          <div className="flex items-center justify-between">
+            <h3 className="font-heading font-bold text-lg text-white">Target Academic Profile</h3>
+            {profileData.targetInstitution && (
+              <button
+                type="button"
+                onClick={() => setActiveTab('ADMISSIONS')}
+                className="text-xs text-amber-400 font-bold hover:underline inline-flex items-center gap-1"
+              >
+                <Building2 size={12} /> Open in Varsity Hub
+              </button>
+            )}
+          </div>
           
           <form onSubmit={handleSaveProfile} className="space-y-4 text-xs">
             <div>
@@ -409,7 +442,7 @@ export default function StudentDashboard() {
 
             <button
               type="submit"
-              className="w-full py-3 font-bold text-slate-950 bg-amber-400 rounded-xl hover:bg-amber-300"
+              className="w-full py-3 font-bold text-slate-950 bg-amber-400 rounded-xl hover:bg-amber-300 transition"
             >
               Save Profile Settings
             </button>

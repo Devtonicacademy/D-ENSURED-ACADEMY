@@ -656,11 +656,25 @@ export default function AuthModal() {
                       <label className="block text-xs font-semibold text-slate-300 mb-1">Target Institution</label>
                       <input
                         type="text"
-                        placeholder="e.g. UNILAG, LASU, UI"
+                        list="auth-varsity-options"
+                        placeholder="e.g. UNILAG, LASU, UI, FUTA"
                         value={formData.targetInstitution}
                         onChange={(e) => setFormData({ ...formData, targetInstitution: e.target.value })}
                         className="w-full px-3 py-2 bg-slate-900/80 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-amber-400"
                       />
+                      <datalist id="auth-varsity-options">
+                        <option value="University of Lagos (UNILAG)" />
+                        <option value="Lagos State University (LASU)" />
+                        <option value="University of Ibadan (UI)" />
+                        <option value="Obafemi Awolowo University (OAU)" />
+                        <option value="Federal University of Technology, Akure (FUTA)" />
+                        <option value="University of Benin (UNIBEN)" />
+                        <option value="University of Ilorin (UNILORIN)" />
+                        <option value="University of Nigeria, Nsukka (UNN)" />
+                        <option value="Ahmadu Bello University (ABU)" />
+                        <option value="Covenant University" />
+                        <option value="Olabisi Onabanjo University (OOU)" />
+                      </datalist>
                     </div>
 
                     <div>
