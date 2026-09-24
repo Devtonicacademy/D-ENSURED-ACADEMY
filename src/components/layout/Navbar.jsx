@@ -205,7 +205,7 @@ export default function Navbar() {
               {userDropdownOpen && (
                 <div 
                   onClick={(e) => e.stopPropagation()}
-                  className="absolute right-0 top-full mt-2 w-64 bg-slate-900/98 backdrop-blur-2xl rounded-2xl shadow-2xl border border-slate-700/80 py-2.5 z-[60] animate-fadeIn"
+                  className="absolute right-0 top-full mt-2 w-64 bg-slate-900 rounded-2xl shadow-2xl shadow-black/80 border border-slate-700 py-2.5 z-[60] animate-fadeIn opacity-100"
                 >
                   <div className="px-3.5 py-2 border-b border-slate-800">
                     <p className="text-xs font-bold text-white truncate">{user.name}</p>
@@ -256,7 +256,7 @@ export default function Navbar() {
                   </div>
 
                   {/* Quick Role Switcher for live testing */}
-                  <div className="px-3.5 py-2 border-t border-slate-800/80 bg-slate-900/50">
+                  <div className="px-3.5 py-2 border-t border-slate-800 bg-slate-950">
                     <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block mb-1.5">
                       Switch Role (RBAC Demo):
                     </span>
@@ -348,7 +348,7 @@ export default function Navbar() {
               {userDropdownOpen && (
                 <div 
                   onClick={(e) => e.stopPropagation()}
-                  className="absolute right-0 top-full mt-2 w-64 bg-slate-900/98 backdrop-blur-2xl rounded-2xl shadow-2xl border border-slate-700/80 py-2.5 z-[60] animate-fadeIn"
+                  className="absolute right-0 top-full mt-2 w-64 bg-slate-900 rounded-2xl shadow-2xl shadow-black/80 border border-slate-700 py-2.5 z-[60] animate-fadeIn opacity-100"
                 >
                   <div className="px-3.5 py-2 border-b border-slate-800">
                     <p className="text-xs font-bold text-white truncate">{user.name}</p>
@@ -397,7 +397,7 @@ export default function Navbar() {
                     </button>
                   </div>
 
-                  <div className="px-3.5 py-2 border-t border-slate-800/80 bg-slate-900/50">
+                  <div className="px-3.5 py-2 border-t border-slate-800 bg-slate-950">
                     <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block mb-1.5">
                       Switch Role (RBAC Demo):
                     </span>
