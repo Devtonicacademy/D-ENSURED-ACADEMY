@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 import SubjectSelector from '../common/SubjectSelector';
+import UniversitySelect from '../common/UniversitySelect';
+import { EXAM_TRACKS } from '../../data/universitiesData';
 import { 
   X, 
   Lock, 
@@ -644,37 +646,20 @@ export default function AuthModal() {
                         onChange={(e) => setFormData({ ...formData, examTrack: e.target.value })}
                         className="w-full px-3 py-2 bg-slate-900/80 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-amber-400"
                       >
-                        <option>JAMB UTME 2026</option>
-                        <option>UNILAG Post-UTME 2026</option>
-                        <option>WAEC / SSCE May/June</option>
-                        <option>NECO SSCE</option>
-                        <option>GCE Private Candidate</option>
+                        {EXAM_TRACKS.map((track) => (
+                          <option key={track} value={track}>
+                            {track}
+                          </option>
+                        ))}
                       </select>
                     </div>
 
                     <div>
                       <label className="block text-xs font-semibold text-slate-300 mb-1">Target Institution</label>
-                      <input
-                        type="text"
-                        list="auth-varsity-options"
-                        placeholder="e.g. UNILAG, LASU, UI, FUTA"
+                      <UniversitySelect
                         value={formData.targetInstitution}
-                        onChange={(e) => setFormData({ ...formData, targetInstitution: e.target.value })}
-                        className="w-full px-3 py-2 bg-slate-900/80 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-amber-400"
+                        onChange={(newUni) => setFormData({ ...formData, targetInstitution: newUni })}
                       />
-                      <datalist id="auth-varsity-options">
-                        <option value="University of Lagos (UNILAG)" />
-                        <option value="Lagos State University (LASU)" />
-                        <option value="University of Ibadan (UI)" />
-                        <option value="Obafemi Awolowo University (OAU)" />
-                        <option value="Federal University of Technology, Akure (FUTA)" />
-                        <option value="University of Benin (UNIBEN)" />
-                        <option value="University of Ilorin (UNILORIN)" />
-                        <option value="University of Nigeria, Nsukka (UNN)" />
-                        <option value="Ahmadu Bello University (ABU)" />
-                        <option value="Covenant University" />
-                        <option value="Olabisi Onabanjo University (OOU)" />
-                      </datalist>
                     </div>
 
                     <div>

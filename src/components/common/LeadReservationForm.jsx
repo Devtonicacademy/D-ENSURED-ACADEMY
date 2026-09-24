@@ -113,7 +113,7 @@ export default function LeadReservationForm({
                   className="w-full px-3.5 py-2.5 bg-slate-900/90 border border-slate-700/80 rounded-xl text-xs text-white focus:outline-none focus:border-amber-400"
                 >
                   <option>JAMB UTME 2026 (Target 300+)</option>
-                  <option>UNILAG Post-UTME (Target 25/30)</option>
+                  <option>Post-UTME Screening Prep</option>
                   <option>WAEC / SSCE Distinction Masterclass</option>
                   <option>NECO SSCE Prep</option>
                   <option>GCE Private Candidate Fast-Track</option>

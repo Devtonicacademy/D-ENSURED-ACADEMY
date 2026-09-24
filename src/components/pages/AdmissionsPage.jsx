@@ -3,6 +3,7 @@ import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 import SubjectSelector from '../common/SubjectSelector';
 import LeadReservationForm from '../common/LeadReservationForm';
+import UniversitySelect from '../common/UniversitySelect';
 import { 
   GraduationCap, 
   Building2, 
@@ -391,12 +392,9 @@ export default function AdmissionsPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-300 mb-1">Target Institution</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. University of Lagos (UNILAG)"
+                <UniversitySelect
                   value={formData.targetInstitution}
-                  onChange={(e) => setFormData({ ...formData, targetInstitution: e.target.value })}
+                  onChange={(newUni) => setFormData({ ...formData, targetInstitution: newUni })}
                   className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-amber-400"
                 />
               </div>

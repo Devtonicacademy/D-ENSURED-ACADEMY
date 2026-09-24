@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 import { COURSES_LIST } from '../../data/coursesData';
+import UniversitySelect from '../common/UniversitySelect';
 import { 
   BookOpen, 
   Award, 
@@ -399,11 +400,10 @@ export default function StudentDashboard() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-slate-300 font-semibold mb-1">Target University</label>
-                <input
-                  type="text"
+                <UniversitySelect
                   value={profileData.targetInstitution}
-                  onChange={(e) => setProfileData({ ...profileData, targetInstitution: e.target.value })}
-                  className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white"
+                  onChange={(newUni) => setProfileData({ ...profileData, targetInstitution: newUni })}
+                  className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white text-xs focus:outline-none focus:border-amber-400"
                 />
               </div>
 

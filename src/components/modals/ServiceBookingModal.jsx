@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
-import { X, CheckCircle2, ShieldCheck, ArrowRight, HelpCircle, FileText } from 'lucide-react';
+import UniversitySelect from '../common/UniversitySelect';
+import { X, CheckCircle2, ShieldCheck, ArrowRight, HelpCircle, FileText } from '../icons/FontAwesomeIcons';
 
 export default function ServiceBookingModal() {
   const { isServiceModalOpen, setIsServiceModalOpen, selectedService, submitServiceRequest, initiatePayment } = useApp();
@@ -12,10 +13,24 @@ export default function ServiceBookingModal() {
     phone: user ? user.phone : '',
     email: user ? user.email : '',
     jambRegNo: user ? user.jambRegNo || '' : '',
-    targetInstitution: 'University of Lagos (UNILAG)',
-    targetCourse: 'Computer Science',
+    targetInstitution: user ? user.targetInstitution || 'University of Lagos (UNILAG)' : 'University of Lagos (UNILAG)',
+    targetCourse: user ? user.targetCourse || 'Computer Science' : 'Computer Science',
     notes: ''
   });
+
+  useEffect(() => {
+    if (user) {
+      setFormData(prev => ({
+        ...prev,
+        studentName: user.name || prev.studentName,
+        phone: user.phone || prev.phone,
+        email: user.email || prev.email,
+        jambRegNo: user.jambRegNo || prev.jambRegNo,
+        targetInstitution: user.targetInstitution || prev.targetInstitution,
+        targetCourse: user.targetCourse || prev.targetCourse
+      }));
+    }
+  }, [user]);
 
   const [submitted, setSubmitted] = useState(false);
   const [requestRef, setRequestRef] = useState('');
@@ -24,82 +39,81 @@ export default function ServiceBookingModal() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    const req = submitServiceRequest({
+    const refCode = 'DEC-' + Math.floor(100000 + Math.random() * 900000);
+    setRequestRef(refCode);
+
+    submitServiceRequest({
       serviceId: selectedService.id,
       serviceTitle: selectedService.title,
-      studentName: formData.studentName || 'Candidate',
-      phone: formData.phone || '08147896930',
+      fee: selectedService.fee,
+      studentName: formData.studentName,
+      phone: formData.phone,
+      email: formData.email,
       targetInstitution: formData.targetInstitution,
-      targetCourse: formData.targetCourse
+      targetCourse: formData.targetCourse,
+      notes: formData.notes,
+      referenceCode: refCode
     });
-    setRequestRef(req.id);
+
     setSubmitted(true);
   };
 
-  const handleProceedPayment = () => {
+  const handlePayNow = () => {
     setIsServiceModalOpen(false);
     initiatePayment({
-      id: selectedService.id,
-      title: selectedService.title,
-      price: selectedService.fee,
-      type: 'service',
-      studentName: formData.studentName,
-      phone: formData.phone
+      title: `${selectedService.title} Processing`,
+      amount: selectedService.fee,
+      category: 'Admission Support'
     });
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn">
-      <div className="relative w-full max-w-lg glass-panel rounded-2xl shadow-2xl border border-slate-700 overflow-hidden max-h-[90vh] flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/85 backdrop-blur-md animate-fadeIn overflow-y-auto">
+      <div className="relative w-full max-w-lg my-8 glass-panel rounded-3xl shadow-2xl border border-slate-700 overflow-hidden">
         
         {/* Header */}
-        <div className="bg-gradient-to-r from-navy-900 via-brandBlue-900 to-navy-900 p-5 border-b border-slate-800 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <img src="/assets/d_ensured_logo.jpg" alt="Logo" className="w-9 h-9 rounded-full border border-amber-400" />
-            <div>
-              <h3 className="font-heading font-bold text-base text-white">{selectedService.title}</h3>
-              <p className="text-xs text-amber-400 font-mono">Service Booking & Consultancy</p>
-            </div>
-          </div>
+        <div className="bg-gradient-to-r from-navy-950 via-brandBlue-900 to-navy-950 p-6 border-b border-slate-800 relative">
           <button
             onClick={() => {
               setIsServiceModalOpen(false);
               setSubmitted(false);
             }}
-            className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800"
+            className="absolute top-4 right-4 text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition"
           >
             <X size={20} />
           </button>
+
+          <span className="text-[10px] font-mono text-amber-400 font-bold uppercase tracking-wider block">
+            Official Advisory Booking
+          </span>
+          <h3 className="font-heading font-extrabold text-xl text-white mt-1">
+            {selectedService.title}
+          </h3>
+          <div className="flex items-center gap-3 mt-2 text-xs font-mono">
+            <span className="text-amber-300 font-bold text-sm">{selectedService.fee}</span>
+            <span className="text-slate-500">•</span>
+            <span className="text-slate-300">Turnaround: {selectedService.processingTime}</span>
+          </div>
         </div>
 
-        {/* Content Body */}
-        <div className="p-6 overflow-y-auto space-y-5">
+        {/* Content */}
+        <div className="p-6 space-y-6">
           
           {!submitted ? (
             <form onSubmit={handleSubmit} className="space-y-4">
               
-              <div className="bg-slate-900/80 p-3.5 rounded-xl border border-slate-800 text-xs text-slate-300">
-                <p className="font-semibold text-amber-300 mb-1">Service Details:</p>
-                <p className="leading-relaxed">{selectedService.fullDesc}</p>
-                <div className="mt-2.5 flex items-center justify-between text-[11px] font-mono border-t border-slate-800/80 pt-2 text-slate-400">
-                  <span>Processing Time: <strong className="text-slate-200">{selectedService.processingTime}</strong></span>
-                  <span>Fee: <strong className="text-amber-400 font-bold">{selectedService.fee}</strong></span>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Full Candidate Name *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Chinedu Okonkwo"
-                  value={formData.studentName}
-                  onChange={(e) => setFormData({ ...formData, studentName: e.target.value })}
-                  className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-amber-400"
-                />
-              </div>
-
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">Candidate Full Name *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Chinedu Okonkwo"
+                    value={formData.studentName}
+                    onChange={(e) => setFormData({ ...formData, studentName: e.target.value })}
+                    className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-amber-400"
+                  />
+                </div>
                 <div>
                   <label className="block text-xs font-semibold text-slate-300 mb-1">WhatsApp Phone *</label>
                   <input
@@ -108,14 +122,28 @@ export default function ServiceBookingModal() {
                     placeholder="08147896930"
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-amber-400 font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">Email Address *</label>
+                  <input
+                    type="email"
+                    required
+                    placeholder="student@example.com"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-amber-400"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">JAMB Reg Number (Optional)</label>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">JAMB Reg No (Optional)</label>
                   <input
                     type="text"
-                    placeholder="202610492819GA"
+                    placeholder="202610XXXXXX"
                     value={formData.jambRegNo}
                     onChange={(e) => setFormData({ ...formData, jambRegNo: e.target.value })}
                     className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-amber-400"
@@ -123,16 +151,14 @@ export default function ServiceBookingModal() {
                 </div>
               </div>
 
-              {(selectedService.id === 'change-institution' || selectedService.id === 'change-course' || selectedService.id === 'admission-processing') && (
+              {(selectedService.id === 'change-institution' || selectedService.id === 'change-course' || selectedService.id === 'admission-processing' || selectedService.id === 'admission-consultation-special') && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-semibold text-slate-300 mb-1">Target Institution</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. UNILAG / LASU"
+                    <UniversitySelect
                       value={formData.targetInstitution}
-                      onChange={(e) => setFormData({ ...formData, targetInstitution: e.target.value })}
-                      className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-amber-400"
+                      onChange={(newUni) => setFormData({ ...formData, targetInstitution: newUni })}
+                      className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-amber-400"
                     />
                   </div>
                   <div>
@@ -162,45 +188,58 @@ export default function ServiceBookingModal() {
                 </div>
               )}
 
-              <button
-                type="submit"
-                className="w-full py-3 text-xs font-bold text-slate-950 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 rounded-xl shadow-lg transition flex items-center justify-center gap-2"
-              >
-                Submit Service Request <ArrowRight size={14} />
-              </button>
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">Specific Instructions / Notes</label>
+                <textarea
+                  rows={2}
+                  placeholder="Provide any additional details or background..."
+                  value={formData.notes}
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  className="w-full px-3.5 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-amber-400"
+                />
+              </div>
+
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  className="w-full py-3.5 text-xs font-bold text-slate-950 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 rounded-xl shadow-lg transition flex items-center justify-center gap-2"
+                >
+                  <ShieldCheck size={16} /> Submit Advisory & Verification Request
+                </button>
+              </div>
 
             </form>
           ) : (
-            <div className="text-center py-6 space-y-4">
-              <div className="w-16 h-16 bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 rounded-full flex items-center justify-center mx-auto shadow-lg">
-                <CheckCircle2 size={36} />
+            <div className="text-center space-y-4 py-4 animate-fadeIn">
+              <div className="w-14 h-14 bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 rounded-full flex items-center justify-center mx-auto">
+                <CheckCircle2 size={32} />
               </div>
 
               <div>
-                <h4 className="font-heading font-bold text-lg text-white">Application Received!</h4>
+                <h4 className="font-heading font-extrabold text-xl text-white">Application Recorded!</h4>
                 <p className="text-xs text-slate-300 mt-1">
-                  Your reference ID is <strong className="text-amber-400 font-mono">{requestRef}</strong>.
+                  Your reference code is <span className="font-mono font-bold text-amber-400">{requestRef}</span>.
                 </p>
-                <p className="text-xs text-slate-400 mt-2 max-w-sm mx-auto">
-                  Our admissions consultant will reach out via WhatsApp ({formData.phone}) within 2 hours. You can also pay online now to fast-track processing.
+                <p className="text-xs text-slate-400 mt-2">
+                  Our senior admissions consultant will review your documentation within {selectedService.processingTime}.
                 </p>
               </div>
 
-              <div className="pt-4 flex flex-col sm:flex-row gap-3">
+              <div className="pt-4 flex flex-col gap-2.5">
                 <button
-                  onClick={handleProceedPayment}
-                  className="flex-1 py-3 text-xs font-bold text-slate-950 bg-amber-400 hover:bg-amber-300 rounded-xl shadow-lg transition"
+                  onClick={handlePayNow}
+                  className="w-full py-3 text-xs font-bold text-slate-950 bg-amber-400 hover:bg-amber-300 rounded-xl shadow transition"
                 >
-                  Proceed to Payment ({selectedService.fee})
+                  Proceed to Secure Checkout ({selectedService.fee})
                 </button>
                 <button
                   onClick={() => {
                     setIsServiceModalOpen(false);
                     setSubmitted(false);
                   }}
-                  className="flex-1 py-3 text-xs font-semibold text-slate-300 hover:text-white bg-slate-800 rounded-xl transition"
+                  className="w-full py-2.5 text-xs font-semibold text-slate-400 hover:text-white"
                 >
-                  Track in Dashboard
+                  Close & Pay Later via Dashboard
                 </button>
               </div>
             </div>

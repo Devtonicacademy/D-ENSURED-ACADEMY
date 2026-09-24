@@ -173,7 +173,7 @@ export default function ContactPage() {
                   className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-amber-400"
                 >
                   <option>JAMB UTME 2026 Preparation</option>
-                  <option>UNILAG Post-UTME 25/30 Prep</option>
+                  <option>Post-UTME Preparation</option>
                   <option>WAEC / NECO Class Registration</option>
                   <option>Correction of Data / Change of Institution</option>
                   <option>O'Level Result Upload on CAPS</option>
