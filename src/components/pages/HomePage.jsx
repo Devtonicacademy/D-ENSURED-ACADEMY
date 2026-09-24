@@ -5,7 +5,6 @@ import { COURSES_LIST } from '../../data/coursesData';
 import { BLOG_POSTS } from '../../data/blogData';
 import ScrollFadeIn from '../../components/animations/ScrollFadeIn';
 import MetricCounterGrid from '../common/MetricCounterGrid';
-import TopScholarsCarousel from '../common/TopScholarsCarousel';
 import ProgramCard from '../common/ProgramCard';
 import LeadReservationForm from '../common/LeadReservationForm';
 import { 
@@ -418,11 +417,6 @@ export default function HomePage() {
 
           </div>
         </div>
-      </section>
-
-      {/* TOP SCHOLARS SUCCESS CAROUSEL */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <TopScholarsCarousel />
       </section>
 
       {/* INLINE LEAD GENERATION / SLOT RESERVATION */}
