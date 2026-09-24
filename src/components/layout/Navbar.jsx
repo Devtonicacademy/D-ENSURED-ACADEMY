@@ -12,7 +12,7 @@ import {
   ArrowRight,
   GraduationCap,
   BellRing
-} from 'lucide-react';
+} from '../icons/FontAwesomeIcons';
 import ThemeToggle from '../common/ThemeToggle';
 
 export default function Navbar() {

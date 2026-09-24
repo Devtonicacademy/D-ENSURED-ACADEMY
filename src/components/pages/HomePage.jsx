@@ -31,7 +31,7 @@ import {
   MailCheck, 
   Compass, 
   Play
-} from 'lucide-react';
+} from '../icons/FontAwesomeIcons';
 
 const ICON_MAP = {
   Building2,
