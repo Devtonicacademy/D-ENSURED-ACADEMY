@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 import { 
@@ -21,6 +21,9 @@ export default function Navbar() {
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [tickerIndex, setTickerIndex] = useState(0);
 
+  const desktopDropdownRef = useRef(null);
+  const mobileDropdownRef = useRef(null);
+
   const ANNOUNCEMENTS = [
     { tag: 'UNILAG 2026 PREP', text: 'Post-UTME Target 25/30 Mastery Classes Live! Reserve slot today.' },
     { tag: 'JAMB CAPS VERIFICATION', text: 'O\'Level Upload & Change of Course advisory desk active at Doyin Plaza.' },
@@ -34,6 +37,32 @@ export default function Navbar() {
     }, 4000);
     return () => clearInterval(timer);
   }, [ANNOUNCEMENTS.length]);
+
+  // Close dropdown on click outside or escape key
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      const insideDesktop = desktopDropdownRef.current && desktopDropdownRef.current.contains(e.target);
+      const insideMobile = mobileDropdownRef.current && mobileDropdownRef.current.contains(e.target);
+      if (!insideDesktop && !insideMobile) {
+        setUserDropdownOpen(false);
+      }
+    };
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setUserDropdownOpen(false);
+        setMobileMenuOpen(false);
+      }
+    };
+
+    if (userDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('keydown', handleKeyDown);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [userDropdownOpen]);
 
   // Close mobile menu on screen resize to desktop
   useEffect(() => {
@@ -66,7 +95,7 @@ export default function Navbar() {
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full max-w-full overflow-hidden glass-panel border-b border-slate-800/80 shadow-2xl">
+    <header className="sticky top-0 z-50 w-full max-w-full glass-panel border-b border-slate-800/80 shadow-2xl">
       {/* Top Banner Notice / Announcement Ticker */}
       <div className="bg-gradient-to-r from-navy-950 via-brandBlue-950 to-navy-950 text-xs py-1.5 px-3 sm:px-6 text-slate-300 border-b border-slate-800/60 overflow-hidden">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-1 sm:gap-4 text-[11px] sm:text-xs">
@@ -148,10 +177,16 @@ export default function Navbar() {
           </button>
 
           {user ? (
-            <div className="relative">
+            <div className="relative" ref={desktopDropdownRef}>
               <button
-                onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-                className="flex items-center gap-1.5 pl-1.5 pr-2.5 py-1 rounded-full glass-card border border-amber-500/30 hover:border-amber-400/60 transition"
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setUserDropdownOpen((prev) => !prev);
+                }}
+                className="flex items-center gap-1.5 pl-1.5 pr-2.5 py-1 rounded-full glass-card border border-amber-500/30 hover:border-amber-400/60 transition cursor-pointer select-none"
+                aria-expanded={userDropdownOpen}
+                aria-label="User account menu"
               >
                 <img 
                   src={user.avatar} 
@@ -161,13 +196,20 @@ export default function Navbar() {
                 <span className="text-[10px] xl:text-[11px] font-semibold text-amber-300 truncate max-w-[70px]">
                   {user.name.split(' ')[0]}
                 </span>
-                <ChevronDown size={12} className="text-slate-400" />
+                <ChevronDown 
+                  size={12} 
+                  className={`text-slate-400 transition-transform duration-200 ${userDropdownOpen ? 'rotate-180 text-amber-400' : ''}`} 
+                />
               </button>
 
               {userDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-60 glass-panel rounded-2xl shadow-2xl border border-slate-700 py-2.5 z-50 animate-fadeIn">
+                <div 
+                  onClick={(e) => e.stopPropagation()}
+                  className="absolute right-0 top-full mt-2 w-64 bg-slate-900/98 backdrop-blur-2xl rounded-2xl shadow-2xl border border-slate-700/80 py-2.5 z-[60] animate-fadeIn"
+                >
                   <div className="px-3.5 py-2 border-b border-slate-800">
                     <p className="text-xs font-bold text-white truncate">{user.name}</p>
+                    {user.email && <p className="text-[10px] text-slate-400 truncate">{user.email}</p>}
                     <div className="flex items-center gap-1.5 mt-1">
                       <span className={`px-2 py-0.5 rounded-full text-[9px] font-mono font-bold uppercase ${
                         user.role === 'admin'
@@ -178,6 +220,11 @@ export default function Navbar() {
                       }`}>
                         {user.role === 'admin' ? 'Administrator' : user.role === 'tutor' ? 'Tutor / Faculty' : 'Student'}
                       </span>
+                      {user.targetInstitution && (
+                        <span className="text-[9px] text-slate-400 truncate font-mono">
+                          • {user.targetInstitution}
+                        </span>
+                      )}
                     </div>
                   </div>
 
@@ -189,7 +236,7 @@ export default function Navbar() {
                           setActiveTab('ADMIN');
                           setUserDropdownOpen(false);
                         }}
-                        className="w-full text-left px-3.5 py-2 text-xs font-semibold text-amber-300 hover:bg-slate-800 flex items-center gap-2"
+                        className="w-full text-left px-3.5 py-2 text-xs font-semibold text-amber-300 hover:bg-slate-800 flex items-center gap-2 transition"
                       >
                         <LayoutDashboard size={14} className="text-amber-400" />
                         Executive Control Panel
@@ -201,7 +248,7 @@ export default function Navbar() {
                         setActiveTab('DASHBOARD');
                         setUserDropdownOpen(false);
                       }}
-                      className="w-full text-left px-3.5 py-2 text-xs font-semibold text-slate-200 hover:bg-slate-800 flex items-center gap-2"
+                      className="w-full text-left px-3.5 py-2 text-xs font-semibold text-slate-200 hover:bg-slate-800 flex items-center gap-2 transition"
                     >
                       <LayoutDashboard size={14} className="text-amber-400" />
                       {user.role === 'admin' ? 'Candidate Dashboard View' : user.role === 'tutor' ? 'Tutor Hub & Class Roster' : 'Student Learning Dashboard'}
@@ -229,7 +276,7 @@ export default function Navbar() {
                           }}
                           className={`py-1 text-[10px] font-bold rounded-lg transition text-center ${
                             user.role === r.id
-                              ? 'bg-amber-400 text-slate-950 font-black'
+                              ? 'bg-amber-400 text-slate-950 font-black shadow'
                               : 'bg-slate-800 text-slate-400 hover:text-white'
                           }`}
                         >
@@ -245,7 +292,7 @@ export default function Navbar() {
                         logout();
                         setUserDropdownOpen(false);
                       }}
-                      className="w-full text-left px-3.5 py-2 text-xs font-semibold text-rose-400 hover:bg-rose-500/10 flex items-center gap-2"
+                      className="w-full text-left px-3.5 py-2 text-xs font-semibold text-rose-400 hover:bg-rose-500/10 flex items-center gap-2 transition"
                     >
                       <LogOut size={14} /> Log Out
                     </button>
@@ -273,13 +320,127 @@ export default function Navbar() {
           </button>
 
           {user ? (
-            <button
-              onClick={() => setActiveTab(user.role === 'admin' ? 'ADMIN' : 'DASHBOARD')}
-              className="px-2 py-1.5 text-xs font-bold text-amber-300 bg-amber-400/10 border border-amber-400/30 rounded-lg flex items-center gap-1"
-            >
-              <LayoutDashboard size={15} />
-              <span className="hidden sm:inline">Portal</span>
-            </button>
+            <div className="relative" ref={mobileDropdownRef}>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setUserDropdownOpen((prev) => !prev);
+                }}
+                className="flex items-center gap-1 px-2 py-1 rounded-full glass-card border border-amber-500/30 hover:border-amber-400/60 transition cursor-pointer"
+                aria-expanded={userDropdownOpen}
+                aria-label="User account menu"
+              >
+                <img 
+                  src={user.avatar} 
+                  alt={user.name} 
+                  className="w-5 h-5 rounded-full object-cover border border-amber-400"
+                />
+                <span className="text-[10px] font-semibold text-amber-300 truncate max-w-[50px] sm:max-w-[70px]">
+                  {user.name.split(' ')[0]}
+                </span>
+                <ChevronDown 
+                  size={11} 
+                  className={`text-slate-400 transition-transform duration-200 ${userDropdownOpen ? 'rotate-180 text-amber-400' : ''}`} 
+                />
+              </button>
+
+              {userDropdownOpen && (
+                <div 
+                  onClick={(e) => e.stopPropagation()}
+                  className="absolute right-0 top-full mt-2 w-64 bg-slate-900/98 backdrop-blur-2xl rounded-2xl shadow-2xl border border-slate-700/80 py-2.5 z-[60] animate-fadeIn"
+                >
+                  <div className="px-3.5 py-2 border-b border-slate-800">
+                    <p className="text-xs font-bold text-white truncate">{user.name}</p>
+                    {user.email && <p className="text-[10px] text-slate-400 truncate">{user.email}</p>}
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-mono font-bold uppercase ${
+                        user.role === 'admin'
+                          ? 'bg-amber-400/20 text-amber-300 border border-amber-400/30'
+                          : user.role === 'tutor'
+                          ? 'bg-emerald-400/20 text-emerald-300 border border-emerald-400/30'
+                          : 'bg-blue-400/20 text-blue-300 border border-blue-400/30'
+                      }`}>
+                        {user.role === 'admin' ? 'Administrator' : user.role === 'tutor' ? 'Tutor / Faculty' : 'Student'}
+                      </span>
+                      {user.targetInstitution && (
+                        <span className="text-[9px] text-slate-400 truncate font-mono">
+                          • {user.targetInstitution}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="py-1">
+                    {user.role === 'admin' && (
+                      <button
+                        onClick={() => {
+                          setActiveTab('ADMIN');
+                          setUserDropdownOpen(false);
+                        }}
+                        className="w-full text-left px-3.5 py-2 text-xs font-semibold text-amber-300 hover:bg-slate-800 flex items-center gap-2"
+                      >
+                        <LayoutDashboard size={14} className="text-amber-400" />
+                        Executive Control Panel
+                      </button>
+                    )}
+
+                    <button
+                      onClick={() => {
+                        setActiveTab('DASHBOARD');
+                        setUserDropdownOpen(false);
+                      }}
+                      className="w-full text-left px-3.5 py-2 text-xs font-semibold text-slate-200 hover:bg-slate-800 flex items-center gap-2"
+                    >
+                      <LayoutDashboard size={14} className="text-amber-400" />
+                      {user.role === 'admin' ? 'Candidate Dashboard View' : user.role === 'tutor' ? 'Tutor Hub & Class Roster' : 'Student Learning Dashboard'}
+                    </button>
+                  </div>
+
+                  <div className="px-3.5 py-2 border-t border-slate-800/80 bg-slate-900/50">
+                    <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block mb-1.5">
+                      Switch Role (RBAC Demo):
+                    </span>
+                    <div className="grid grid-cols-3 gap-1">
+                      {[
+                        { id: 'student', label: 'Student' },
+                        { id: 'tutor', label: 'Tutor' },
+                        { id: 'admin', label: 'Admin' }
+                      ].map((r) => (
+                        <button
+                          key={r.id}
+                          onClick={() => {
+                            switchRole(r.id);
+                            if (r.id === 'admin') setActiveTab('ADMIN');
+                            else setActiveTab('DASHBOARD');
+                            setUserDropdownOpen(false);
+                          }}
+                          className={`py-1 text-[10px] font-bold rounded-lg transition text-center ${
+                            user.role === r.id
+                              ? 'bg-amber-400 text-slate-950 font-black shadow'
+                              : 'bg-slate-800 text-slate-400 hover:text-white'
+                          }`}
+                        >
+                          {r.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="pt-1 border-t border-slate-800/80">
+                    <button
+                      onClick={() => {
+                        logout();
+                        setUserDropdownOpen(false);
+                      }}
+                      className="w-full text-left px-3.5 py-2 text-xs font-semibold text-rose-400 hover:bg-rose-500/10 flex items-center gap-2"
+                    >
+                      <LogOut size={14} /> Log Out
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           ) : (
             <button
               onClick={() => openAuthModal('login')}
@@ -303,6 +464,40 @@ export default function Navbar() {
       {/* Mobile Drawer Menu (< 1024px) */}
       {mobileMenuOpen && (
         <div className="lg:hidden border-t border-slate-800 bg-navy-950/98 px-4 pt-3 pb-6 space-y-3 animate-fadeIn">
+          {user && (
+            <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 space-y-2">
+              <div className="flex items-center gap-2.5">
+                <img src={user.avatar} alt={user.name} className="w-8 h-8 rounded-full border border-amber-400 object-cover" />
+                <div className="min-w-0">
+                  <p className="text-xs font-bold text-white truncate">{user.name}</p>
+                  <span className="text-[10px] text-amber-300 font-mono capitalize">
+                    {user.role === 'admin' ? 'Administrator' : user.role === 'tutor' ? 'Faculty / Tutor' : 'Student Portal'}
+                  </span>
+                </div>
+              </div>
+              <div className="flex gap-2 pt-1 border-t border-slate-800">
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    setActiveTab(user.role === 'admin' ? 'ADMIN' : 'DASHBOARD');
+                  }}
+                  className="flex-1 py-1.5 text-[11px] font-bold rounded-lg bg-amber-400 text-slate-950 text-center"
+                >
+                  Go to Portal
+                </button>
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    logout();
+                  }}
+                  className="px-3 py-1.5 text-[11px] font-bold rounded-lg bg-rose-500/20 text-rose-400 hover:bg-rose-500/30 border border-rose-500/30"
+                >
+                  Log Out
+                </button>
+              </div>
+            </div>
+          )}
+
           <nav className="grid grid-cols-2 gap-1.5">
             {navItems.map((item) => {
               const isActive = activeTab === item.id;
