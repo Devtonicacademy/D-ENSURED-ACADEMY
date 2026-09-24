@@ -16,7 +16,6 @@ import {
   ShieldCheck, 
   TrendingUp, 
   Star, 
-  Sparkles, 
   Clock, 
   Users, 
   Building2, 
@@ -83,12 +82,6 @@ export default function HomePage() {
             {/* Left Hero Text */}
             <div className="lg:col-span-7 space-y-6 text-center lg:text-left">
               
-              {/* Pill Tagline */}
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-400/10 border border-amber-400/30 text-amber-300 text-xs font-bold font-mono tracking-wider shadow-inner">
-                <Sparkles size={14} className="text-amber-400" />
-                <span>D ENSURED CONSULT ACADEMY • RC: 8723808</span>
-              </div>
-
               <h1 className="font-heading font-extrabold text-3xl sm:text-5xl lg:text-6xl text-white tracking-tight leading-[1.15]">
                 Your Success Starts Here. <br />
                 <span className="gold-gradient-text">We Set The Pace, Others Follow.</span>
