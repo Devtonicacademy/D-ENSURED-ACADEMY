@@ -309,7 +309,10 @@ export default function AdmissionsPage() {
             </p>
 
             <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 text-left text-xs font-mono space-y-2">
-              <p className="text-emerald-400 font-bold">✓ High Admission Eligibility (78.5% Probability)</p>
+              <p className="text-emerald-400 font-bold flex items-center gap-1.5">
+                <CheckCircle2 size={14} className="shrink-0" />
+                <span>High Admission Eligibility (78.5% Probability)</span>
+              </p>
               <p className="text-slate-400">Target Post-UTME score required: <strong className="text-amber-400 font-bold">25/30 or higher</strong>.</p>
               <p className="text-slate-400">Next Action: Enroll in D Ensured Post-UTME Masterclass or verify O'Level upload on JAMB CAPS.</p>
             </div>

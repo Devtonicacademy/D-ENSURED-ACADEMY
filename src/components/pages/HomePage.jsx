@@ -306,9 +306,10 @@ export default function HomePage() {
         <div className="text-center pt-4">
           <button
             onClick={() => setActiveTab('SERVICES')}
-            className="px-6 py-3 text-xs font-bold text-white border border-slate-700 hover:border-amber-400 bg-slate-900 rounded-xl transition"
+            className="px-6 py-3 text-xs font-bold text-white border border-slate-700 hover:border-amber-400 bg-slate-900 rounded-xl transition inline-flex items-center gap-1.5"
           >
-            View All 11+ Consultancy Services →
+            <span>View All 11+ Consultancy Services</span>
+            <ArrowRight size={13} />
           </button>
         </div>
       </section>
@@ -341,9 +342,10 @@ export default function HomePage() {
         <div className="text-center pt-2">
           <button
             onClick={() => setActiveTab('COURSES')}
-            className="px-7 py-3 text-xs font-bold text-white border border-slate-700 hover:border-amber-400 bg-slate-900 rounded-xl transition"
+            className="px-7 py-3 text-xs font-bold text-white border border-slate-700 hover:border-amber-400 bg-slate-900 rounded-xl transition inline-flex items-center gap-1.5"
           >
-            Explore Complete Course Catalogue →
+            <span>Explore Complete Course Catalogue</span>
+            <ArrowRight size={13} />
           </button>
         </div>
       </section>
@@ -408,7 +410,9 @@ export default function HomePage() {
                   ))}
                 </div>
                 <div className="pt-2 text-right">
-                  <span className="text-[10px] text-emerald-400">✓ Score Saved to Dashboard</span>
+                  <span className="text-[10px] text-emerald-400 inline-flex items-center gap-1">
+                    <CheckCircle2 size={11} /> Score Saved to Dashboard
+                  </span>
                 </div>
               </div>
             </div>

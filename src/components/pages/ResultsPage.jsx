@@ -152,8 +152,9 @@ export default function ResultsPage() {
             </button>
           </form>
         ) : (
-          <div className="p-4 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 rounded-xl text-xs">
-            ✓ Thank you! Your story has been submitted for admin verification.
+          <div className="p-4 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 rounded-xl text-xs flex items-center gap-2">
+            <CheckCircle2 size={16} className="shrink-0 text-emerald-400" />
+            <span>Thank you! Your story has been submitted for admin verification.</span>
           </div>
         )}
       </div>

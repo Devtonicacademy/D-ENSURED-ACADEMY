@@ -95,7 +95,10 @@ export default function AdminDashboard() {
         </div>
 
         <div className="bg-slate-900/90 p-3.5 rounded-2xl border border-slate-800 text-xs font-mono text-slate-300">
-          <span className="text-emerald-400 font-bold block">● System Online</span>
+          <span className="text-emerald-400 font-bold flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse inline-block" />
+            <span>System Online</span>
+          </span>
           <span>Role: Master Executive Admin</span>
         </div>
       </div>

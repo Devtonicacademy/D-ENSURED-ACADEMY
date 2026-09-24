@@ -7,6 +7,7 @@ import {
   MessageCircle, 
   ShieldCheck, 
   CheckCircle2, 
+  ArrowRight,
   ArrowUpRight,
   GraduationCap,
   Sparkles,
@@ -141,7 +142,9 @@ export default function Footer() {
                   }}
                   className="hover:text-white transition text-slate-500 hover:text-slate-400 text-[11px] block pt-2"
                 >
-                  Staff & Admin Gateway →
+                  <span className="inline-flex items-center gap-1.5">
+                    Staff & Admin Gateway <ArrowRight size={11} />
+                  </span>
                 </button>
               </li>
             </ul>

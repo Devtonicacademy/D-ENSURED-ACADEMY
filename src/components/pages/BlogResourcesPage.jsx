@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { BLOG_POSTS } from '../../data/blogData';
-import { Search, Calendar, User, Clock, ArrowRight, BookOpen } from 'lucide-react';
+import { Search, Calendar, User, Clock, ArrowRight, ArrowLeft, BookOpen } from 'lucide-react';
 
 export default function BlogResourcesPage() {
   const [selectedCategory, setSelectedCategory] = useState('ALL');
@@ -107,9 +107,10 @@ export default function BlogResourcesPage() {
         <div className="glass-panel p-8 sm:p-12 rounded-3xl border border-slate-800 max-w-4xl mx-auto space-y-6">
           <button
             onClick={() => setActivePost(null)}
-            className="text-xs font-bold text-amber-400 hover:underline flex items-center gap-1.5"
+            className="text-xs font-bold text-amber-400 hover:underline inline-flex items-center gap-1.5"
           >
-            ← Back to Articles List
+            <ArrowLeft size={13} />
+            <span>Back to Articles List</span>
           </button>
 
           <span className="bg-amber-400/20 text-amber-300 border border-amber-400/30 text-[10px] font-mono font-bold px-3 py-1 rounded-full uppercase">
